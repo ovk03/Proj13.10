@@ -19,26 +19,28 @@ from GameEngineV5 import *
 if __name__ == "some random stuff to trick pep8 thinking that i have GameEngine module imported (I do)":
     from ...GameEngineV5 import *
 
-tri=Triangle2d(
+tri=lambda a:Triangle2d(
     vert1=Vector2(0,0),
     vert2=Vector2(1000,0),
-    vert3=Vector2(1000,1000),
+    vert3=Vector2(a,1000),
     normal=0,
     depth=0
 )
 
 def test():
-    has_run_unittest=False
     try:
          inter=interpeter()
-         while inter.draw(draw_buffer([tri])):
+         i=0
+         while inter.draw(draw_buffer([tri((i%50)*40)])):
+             i+=1
              time.sleep(0.001)
     except Exception as e:
-        has_run_unittest = True
         logging.getLogger().exception(e)
-        unittest.main()
-    finally:
-        if not has_run_unittest:
-            unittest.main()
-
+    loader = unittest.TestLoader()
+    start_dir = str(pathlib.Path(__file__).parent.parent)
+    suite = loader.discover(start_dir)
+    unittest_runner = unittest.TextTestRunner()
+    unittest_runner.run(suite)
 test()
+if __name__ == "__main__":
+    import test

@@ -15,6 +15,8 @@ if __name__ == "__main__":
     import test
     quit()
 
-from .internals import *
-from .mathAndStructs import *
-from .engine import *
+else:
+    # imported as a package and not ran as code
+    from .internals import *
+    from .mathAndStructs import *
+    from .engine import *

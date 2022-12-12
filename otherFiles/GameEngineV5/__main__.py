@@ -10,12 +10,10 @@ created 10.12.2022 14.59
 
 
 
-
-
 if __name__ == "__main__":
     # import test without relative path
+    import unittest
     import sys
     import pathlib
     sys.path.append(str(pathlib.Path().absolute().parent))
     import test
-    quit()
