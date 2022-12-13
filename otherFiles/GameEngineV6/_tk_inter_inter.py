@@ -1,5 +1,5 @@
 """manages interactions with tkinter"""
-import tkinter
+
 
 """Onni Kolkka 
 150832953 (student number)
@@ -7,7 +7,7 @@ created 10.12.2022 15.06
 """
 
 from .structures import *
-
+import tkinter
 
 class Interpeter:
 
@@ -18,7 +18,7 @@ class Interpeter:
     height=1080
 
     def __init__(self):
-        self.root = Tk()
+        self.root = tkinter.Tk()
         self.root.geometry(f"{self.width}x{self.height}")
         self.buffer = DrawBuffer()
         self.canvas = tkinter.Canvas()
@@ -32,9 +32,12 @@ class Interpeter:
         # print(tri.vert2)
         # print(tri.vert3)
         rel_tri=Triangle2d(
-            (tri.vert1.vec2()+Vector2(1,1))*(0.5*(w+h)/2),
-            (tri.vert2.vec2()+Vector2(1,1))*(0.5*(w+h)/2),
-            (tri.vert3.vec2()+Vector2(1,1))*(0.5*(w+h)/2)
+            Vector2((tri.vert1.vec2() + Vector2(1, 1)).x * w / 2,
+                    (tri.vert1.vec2() + Vector2(1, 1)).y * h / 2),
+            Vector2((tri.vert2.vec2() + Vector2(1, 1)).x * w / 2,
+                    (tri.vert2.vec2() + Vector2(1, 1)).y * h / 2),
+            Vector2((tri.vert3.vec2() + Vector2(1, 1)).x * w / 2,
+                    (tri.vert3.vec2() + Vector2(1, 1)).y * h / 2)
         )
         # print(rel_tri.vert1)
         # print()
@@ -64,7 +67,7 @@ class Interpeter:
             self.canvas.destroy()
         except Exception:
             return False
-        self.canvas=Canvas(self.root,height=self.height,width=self.width)
+        self.canvas=tkinter.Canvas(self.root,height=self.height,width=self.width)
         if(len(new_buffer.triangles)==0):
             print("no triangles in buffer")
 

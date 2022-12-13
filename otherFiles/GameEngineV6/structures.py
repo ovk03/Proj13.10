@@ -207,7 +207,7 @@ class Matrix4x4:
             return True
 
 
-    @functools.cache
+    # @functools.cache
     def m4x4_times_m4x4(first, second):
         # as we only allow 4x4 matrices, every matrix multiplication is always possible
         calc = lambda x, y, n: getattr(first, f"m{x}{n}") * getattr(second, f"m{n}{y}")
@@ -237,7 +237,7 @@ class Matrix4x4:
 
         return Matrix4x4(*value_list)
 
-    @functools.cache
+    # @functools.cache
     def m4x4_times_v4(first, second: Vector4) -> Vector4:
         # as we only allow 4x4 matrices, every matrix multiplication is always possible
         calc = lambda x, vector_value, n: getattr(first, f"m{x}{n}") * vector_value
@@ -343,8 +343,6 @@ class DrawBuffer:
 
     def project(self,projection):
         new_buffer = DrawBuffer(self.triangles)
-        for t in new_buffer.triangles:
-            t.vert1 = projection(t.vert1)
         return new_buffer
 
 # endregion

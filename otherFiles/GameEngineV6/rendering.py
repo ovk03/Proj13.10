@@ -4,11 +4,12 @@ created 10.12.2022 15.07
 """
 import math
 import unittest
+import copy
 from  ._tk_inter_inter import *
 from .structures import *
 
 class CameraRender:
-    tris=[]
+    buffer=None
     camera_pos=Vector3()
     camera_rot=Vector3()
     def __init__(self,pos=Vector3(), rot=Vector3()):
@@ -68,11 +69,11 @@ class CameraRender:
         #  print("\nrot: ",end="")
         #  print(camera_rot)
         # print(point_v4)
-        point_v4 = z_rot_m4 * point_v4
+        point_v4 = x_rot_m4 * point_v4
         # print(point_v4)
         point_v4 = y_rot_m4 * point_v4
         # print(point_v4)
-        point_v4 = x_rot_m4 * point_v4
+        point_v4 = z_rot_m4 * point_v4
         # print(point_v4)
 
         return Vector3(point_v4.x / point_v4.w,
@@ -89,16 +90,16 @@ class CameraRender:
 
         point_v4 = point.vec4()
 
-        x_fov = 100
-        y_fov = 100
+        x_fov = 9/10
+        y_fov = 16/10
         x_off = 0
         y_off = 0
         near = .1
-        far = 10
+        far = 10000
         # I really hope the formulas I found online are correct
         proj = Matrix4x4 \
-            (near / x_fov, 0, x_off, 0,
-             0, near / y_fov, y_off, 0,
+            (x_fov, 0, x_off, 0,
+             0, y_fov, y_off, 0,
              0, 0, far / (far - near), 1,
              0, 0, -near * far / (far - near), 0)
 
@@ -127,45 +128,55 @@ class CameraRender:
 
 
     def backface_culling(self, triangles: list):
-        return list(filter(lambda t: t.normal * self.rot > 0, triangles))
+        return list(filter(lambda t: t.normal * self.camera_rot > 0, triangles))
+
 
     def basic_frustum_culling(self,triangles: list):
-        filter_func = lambda triangle: (0.01 > triangle.vert1.z) and \
-                                       (0.01 > triangle.vert2.z) and \
-                                       (0.01 > triangle.vert3.z)
+        filter_func = lambda triangle: (0.01 >= triangle.vert1.z) and \
+                                       (0.01 >= triangle.vert2.z) and \
+                                       (0.01 >= triangle.vert3.z)
         triangles=list(filter(filter_func, triangles))
+
         for t in triangles:
             t.depth = (t.vert1.z + t.vert2.z + t.vert3.z) / 3
+
         return triangles
+
 
     def frustum_culling(self,triangles: list):
 
         # HOW TF DOES PYTHON NOT HAVE SIGN FUNCTION ???????
         sign = lambda f: f/math.fabs(f) if f != 0 else 0
 
-        filter_func = lambda triangle: ((-1 < triangle.vert1.x < 1 or -1 < triangle.vert1.y < 1) and
-                                        (-1 < triangle.vert2.x < 1 or -1 < triangle.vert2.y < 1) and
-                                        (-1 < triangle.vert3.x < 1 or -1 < triangle.vert3.y < 1)) or \
+        filter_func = lambda triangle: ((-1 <= triangle.vert1.x <= 1 or -1 <= triangle.vert1.y <= 1) and
+                                        (-1 <= triangle.vert2.x <= 1 or -1 <= triangle.vert2.y <= 1) and
+                                        (-1 <= triangle.vert3.x <= 1 or -1 <= triangle.vert3.y <= 1)) or \
                                        (not (sign(triangle.vert1.x) == sign(triangle.vert2.x) == sign(triangle.vert3.x)) and
                                         not (sign(triangle.vert1.y) == sign(triangle.vert2.y) == sign(triangle.vert3.x)))
 
         triangles=list(filter(filter_func, triangles))
 
-        tri = Triangle(Vector3(0.1, 0, 1),
-                         Vector3(0.1, 0, 10),
-                         Vector3(0.0, 0, 0),Vector3())
-        for t in triangles:
-            t.depth = (t.vert1.z + t.vert2.z + t.vert3.z) / 3
         return triangles
 
 
-    def render(self,buffer) -> bool:
-        buffer=buffer.project(self, self.camera_transform_matrix)
-        buffer=buffer.project(self, self.camera_project_matrix)
+    def render(self,buffer=None) -> bool:
 
-        for i in buffer.triangles:
-            if type(i) != Triangle:
-                raise TypeError
+        if type(buffer) is not DrawBuffer:
+            buffer = copy.deepcopy(self.buffer)
+        else:
+            self.buffer = copy.deepcopy(buffer)
+
+        for t in buffer.triangles:
+            t.vert1 = self.camera_transform_matrix(t.vert1)
+            t.vert2 = self.camera_transform_matrix(t.vert2)
+            t.vert3 = self.camera_transform_matrix(t.vert3)
+
+        # buffer.triangles=self.basic_frustum_culling(buffer.triangles)
+
+        for t in buffer.triangles:
+            t.vert1 = self.camera_project_matrix(t.vert1)
+            t.vert2 = self.camera_project_matrix(t.vert2)
+            t.vert3 = self.camera_project_matrix(t.vert3)
 
         if self.inter.draw(buffer):
             return True
@@ -184,7 +195,7 @@ class proj_unit_test(unittest.TestCase):
         tris.append(Triangle(Vector3(-3, 1, 1), Vector3(-1, -2, 10), Vector3(-2, -1, 0), Vector3()))
         new_tris = rend.frustum_culling(tris)
 
-        self.assertEqual(len(new_tris),2)
+        self.assertEqual(len(new_tris),3)
 
 
         rend.camera_rot = Vector3(0, 0, 0)
@@ -211,24 +222,24 @@ class proj_unit_test(unittest.TestCase):
         new_point = rend.camera_transform_matrix(point)
         self.assertEqual(new_point, Vector3(-1, 0, 0))
 
-        rend.camera_rot = Vector3(90, 90, 423423)
+        rend.camera_rot = Vector3(90, 270, -90)
         new_point = rend.camera_transform_matrix(point)
         self.assertEqual(new_point, Vector3(-1, 0, 0))
 
-        rend.camera_rot = Vector3(312378,270,0)
+        rend.camera_rot = Vector3(90,270,90)
         new_point = rend.camera_transform_matrix(point)
         self.assertEqual(new_point, Vector3(1, 0, 0))
 
         rend.camera_rot = Vector3(0, 0, 0)
         rend.camera_pos = Vector3(0, 0, -1)
-        points = [Vector3(5, 0, 1), Vector3(50, 0, 10),
-                  Vector3(0, 0, 0), Vector3(-1, -.1, -0.8)]
+        points = [Vector3(2, 0, 1), Vector3(4, 0, 10),
+                  Vector3(0, 0, 0), Vector3(-.1, -.1, -0.2)]
         new_points = [rend.camera_project_matrix(rend.camera_transform_matrix( p)) for p in points]
         for new_point in new_points:
             self.assertNotEqual(point, new_point)
-            self.assertTrue(-1 < new_point.x < 1)
-            self.assertTrue(-1 < new_point.y < 1)
-            self.assertTrue(-1 < new_point.z < 1)
+            self.assertTrue(-1 <= new_point.x <= 1)
+            self.assertTrue(-1 <= new_point.y <= 1)
+            self.assertTrue(-1 <= new_point.z <= 1)
 
         rend.camera_rot = Vector3(0, 0, 0)
         rend.camera_pos = Vector3(0, 0, -1)

@@ -1,5 +1,5 @@
 """this file implements unittests"""
-import time
+import math
 
 """Onni Kolkka 
 150832953 (student number)
@@ -7,17 +7,10 @@ created 11.12.2022 20.53
 """
 
 # import game engine from the game engine itself, on order to run unittests
-import sys
-import pathlib
-
-sys.path.append(str(pathlib.Path(__file__).parent.parent.parent))
-# this throws error but runs just fine. This is probably not good, but this is the unittest solution for this project
-# its not like anyone will ever see my terrible game engine structure :) oh wait.
-if __name__ == "some random stuff to trick pep8 thinking that I have  various modules  imported (which I do)":
-    from t13.otherFiles.GameEngineV5 import *
-    from t13.otherFiles.GameEngineV6.structures import *
-    from t13.otherFiles.GameEngineV6.rendering import *
-
+from GameEngineV6 import *
+import time
+import logging
+import unittest
 
 def tri(pos):
     return Triangle(
@@ -28,19 +21,17 @@ def tri(pos):
     )
 def quad(pos,first=True):
     if(first):
-        return Triangle(
-            Vector3(pos.x-.01,pos.y-.01),
-            Vector3(pos.x+.01,pos.y-.01),
-            Vector3(pos.x+.01,pos.y+.01),
+        return [Triangle(
+            Vector3(pos.x-.1,pos.y-.1,pos.z),
+            Vector3(pos.x+.1,pos.y-.1,pos.z),
+            Vector3(pos.x+.1,pos.y+.1,pos.z),
             Vector3()
-        )
-    else:
-        return Triangle(
-            Vector3(pos.x-.01,pos.y-.01),
-            Vector3(pos.x+.01,pos.y+.01),
-            Vector3(pos.x-.01,pos.y+.01),
+        ),Triangle(
+            Vector3(pos.x-.1,pos.y-.1,pos.z),
+            Vector3(pos.x+.1,pos.y+.1,pos.z),
+            Vector3(pos.x-.1,pos.y+.1,pos.z),
             Vector3()
-        )
+        )]
 
 def cube(x_pos,rot):
     vert=[]*8
@@ -57,10 +48,10 @@ def cube(x_pos,rot):
 
 def grid_test():
     l=[]
-    for x in range(-10,10):
-        for y in range(-10,10):
-            l.append(quad(Vector2(x,y)))
-            l.append(quad(Vector2(x,y),False))
+    for x in range(-5,6):
+        for y in range(-5,6):
+            for z in range(-2,3):
+                l.extend(quad(Vector3(x,y,z)))
     for i in l:
         if type(i) != Triangle:
             raise TypeError
@@ -75,18 +66,12 @@ def test():
         print(len(grid_test()))
         inter.render(DrawBuffer(grid_test()))
         time.sleep(2)
-        quit()
-        while inter.render(DrawBuffer(cube(0, i))):
+        while inter.render():
+            inter.camera_rot=Vector3(math.cos(i/3.3)*6,math.sin(i/7)*6,0)
             i+=1
-            time.sleep(0.001)
     except Exception as e:
         logging.getLogger().exception(e)
-    loader = unittest.TestLoader()
-    start_dir = str(pathlib.Path(__file__).parent.parent)
-    suite = loader.discover(start_dir)
-    unittest_runner = unittest.TextTestRunner()
-    unittest_runner.run(suite)
-    quit()
+    unittest.main()
 
 
 if __name__ == "__main__":

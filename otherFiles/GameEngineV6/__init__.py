@@ -4,18 +4,5 @@
 created 14.12.2022 0.14
 """
 
-
-def main():
-    """main
-    do something"""
-    secondary()
-
-
-def secondary():
-    """secondary
-    do something"""
-    print("")
-
-
-if __name__ == '__main__':
-    main()
+from .game_engine import *
+from .structures import *
