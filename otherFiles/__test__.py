@@ -1,28 +1,22 @@
 """this file implements unittests"""
 import time
 
-from t13.otherFiles.GameEngineV5.internals import Interpeter, draw_buffer
-from t13.otherFiles.GameEngineV5.mathAndStructs import Triangle2d, Vector2
-
 """Onni Kolkka 
 150832953 (student number)
 created 11.12.2022 20.53
 """
 
-import unittest
-
 # import game engine from the game engine itself, on order to run unittests
 import sys
 import pathlib
-import logging
+
 sys.path.append(str(pathlib.Path(__file__).parent.parent.parent))
 # this throws error but runs just fine. This is probably not good, but this is the unittest solution for this project
 # its not like anyone will ever see my terrible game engine structure :) oh wait.
-from GameEngineV5 import *
 if __name__ == "some random stuff to trick pep8 thinking that I have  various modules  imported (which I do)":
-    from ...GameEngineV5 import *
-    from ...GameEngineV5.mathAndStructs.vectors import *
-    from ...GameEngineV5.internals.rendering import *
+    from t13.otherFiles.GameEngineV5 import *
+    from t13.otherFiles.GameEngineV6.structures import *
+    from t13.otherFiles.GameEngineV6.rendering import *
 
 
 def tri(pos):
@@ -79,10 +73,10 @@ def test():
         i=0
 
         print(len(grid_test()))
-        inter.render(draw_buffer(grid_test()))
+        inter.render(DrawBuffer(grid_test()))
         time.sleep(2)
         quit()
-        while inter.render(draw_buffer(cube(0,i))):
+        while inter.render(DrawBuffer(cube(0, i))):
             i+=1
             time.sleep(0.001)
     except Exception as e:
@@ -96,7 +90,7 @@ def test():
 
 
 if __name__ == "__main__":
-    from test import *
+    pass
 
 test()
 

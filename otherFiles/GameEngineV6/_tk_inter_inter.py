@@ -6,18 +6,7 @@ import tkinter
 created 10.12.2022 15.06
 """
 
-
-from tkinter import *
-from dataclasses import dataclass
-import math
-
-from .rendering import *
-import sys
-import pathlib
-sys.path.append(str(pathlib.Path(__file__).parent.parent.parent))
-from GameEngineV5.mathAndStructs import *
-if __name__ == "some random stuff to trick pep8 thinking that i have mathAndStructs module imported (I do)":
-    from ..mathAndStructs import *
+from .structures import *
 
 
 class Interpeter:
@@ -31,7 +20,7 @@ class Interpeter:
     def __init__(self):
         self.root = Tk()
         self.root.geometry(f"{self.width}x{self.height}")
-        self.buffer = draw_buffer()
+        self.buffer = DrawBuffer()
         self.canvas = tkinter.Canvas()
         pass
 
@@ -40,6 +29,8 @@ class Interpeter:
         h=self.height
         # print(w,h)
         # print(tri.vert1)
+        # print(tri.vert2)
+        # print(tri.vert3)
         rel_tri=Triangle2d(
             (tri.vert1.vec2()+Vector2(1,1))*(0.5*(w+h)/2),
             (tri.vert2.vec2()+Vector2(1,1))*(0.5*(w+h)/2),
@@ -59,11 +50,11 @@ class Interpeter:
         return new
 
 
-    def draw(self, new_buffer: draw_buffer = buffer):
+    def draw(self, new_buffer: DrawBuffer = buffer):
         """ draw next frame
 
         :param new_buffer: 3d things to draw to screen
-        :type new_buffer: draw_buffer
+        :type new_buffer: DrawBuffer
         """
 
         # TODO: this is terrible for performance reusing polygons is a necessary improvement for realtime rendering

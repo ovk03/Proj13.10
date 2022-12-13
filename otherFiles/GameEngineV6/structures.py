@@ -1,5 +1,4 @@
 """Handles vector types and their math"""
-import functools
 
 """Onni Kolkka 
 150832953 (student number)
@@ -12,24 +11,9 @@ so added comments would only make reading harder for the most part"""
 from dataclasses import dataclass
 import unittest
 import math
+import functools
 import logging
 
-
-# region renderingData
-@dataclass
-class draw_buffer:
-    triangles = []
-
-    def __init__(self, tris=[]):
-        self.triangles = tris
-
-    def project(self,object,projection):
-        new_buffer = draw_buffer(self.triangles)
-        for t in new_buffer.triangles:
-            t.vert1 = projection(t.vert1)
-        return new_buffer
-
-# endregion
 
 # region vect
 @dataclass
@@ -124,7 +108,6 @@ class Vector3:
     def vec4(self):
         return Vector4(self.x, self.y, self.z,1)
 
-
 @dataclass
 class Vector4:
 
@@ -184,6 +167,99 @@ class Vector4:
     def __repr__(self):
         return f"{self.x:.2f} :  {self.y:.2f} :  {self.z:.2f} :  {self.w:.2f}"
 
+
+# endregion
+
+# region matrix
+
+@dataclass
+class Matrix4x4:
+    def __init__(self, *args, suppress=False, eye=False):
+
+        if eye:
+            for i in range(4 * 4):
+                # creates eye matrix
+                setattr(self, f"m{i % 4}{int(i / 4)}", 1.0 if int(i / 4) == i % 4 else 0.0)
+            return
+
+        elif len(args) != 4 * 4:
+            if not suppress:
+                if len(args) > 0:
+                    raise Exception("\33[31mCreating Matrix with too few values "
+                                    "\33[33m(filled rest of the matrix with 0.0)\33[0m")
+
+            # fills matrix so it contains every elements
+            args += tuple([0.0] * (4 * 4 - len(args)))
+
+        for number, value in enumerate(args, start=0):
+            setattr(self, f"m{number % 4}{int(number / 4)}", value)
+            # this result in attributes like   matrix.m10  matrix.m03  matrix.m33
+
+    def __eq__(self, other) -> bool:
+        # guard clause for different data type
+        if type(other) != type(self):
+            return False
+
+        for number in range(4*4):
+            if getattr(self, f"m{number % 4}{int(number / 4)}") != getattr(self, f"m{number % 4}{int(number / 4)}"):
+                return False
+        else:
+            return True
+
+
+    @functools.cache
+    def m4x4_times_m4x4(first, second):
+        # as we only allow 4x4 matrices, every matrix multiplication is always possible
+        calc = lambda x, y, n: getattr(first, f"m{x}{n}") * getattr(second, f"m{n}{y}")
+
+        # writing out the for loop to maybe get extra performance. pythons performance is pretty poor anyway
+        value_list = [
+            calc(0, 0, 0) + calc(0, 0, 1) + calc(0, 0, 2) + calc(0, 0, 3),
+            calc(1, 0, 0) + calc(1, 0, 1) + calc(1, 0, 2) + calc(1, 0, 3),
+            calc(2, 0, 0) + calc(2, 0, 1) + calc(2, 0, 2) + calc(2, 0, 3),
+            calc(3, 0, 0) + calc(3, 0, 1) + calc(3, 0, 2) + calc(3, 0, 3),
+
+            calc(0, 1, 0) + calc(0, 1, 1) + calc(0, 1, 2) + calc(0, 1, 3),
+            calc(1, 1, 0) + calc(1, 1, 1) + calc(1, 1, 2) + calc(1, 1, 3),
+            calc(2, 1, 0) + calc(2, 1, 1) + calc(2, 1, 2) + calc(2, 1, 3),
+            calc(3, 1, 0) + calc(3, 1, 1) + calc(3, 1, 2) + calc(3, 1, 3),
+
+            calc(0, 2, 0) + calc(0, 2, 1) + calc(0, 2, 2) + calc(0, 2, 3),
+            calc(1, 2, 0) + calc(1, 2, 1) + calc(1, 2, 2) + calc(1, 2, 3),
+            calc(2, 2, 0) + calc(2, 2, 1) + calc(2, 2, 2) + calc(2, 2, 3),
+            calc(3, 2, 0) + calc(3, 2, 1) + calc(3, 2, 2) + calc(3, 2, 3),
+
+            calc(0, 3, 0) + calc(0, 3, 1) + calc(0, 3, 2) + calc(0, 3, 3),
+            calc(1, 3, 0) + calc(1, 3, 1) + calc(1, 3, 2) + calc(1, 3, 3),
+            calc(2, 3, 0) + calc(2, 3, 1) + calc(2, 3, 2) + calc(2, 3, 3),
+            calc(3, 3, 0) + calc(3, 3, 1) + calc(3, 3, 2) + calc(3, 3, 3)
+        ]
+
+        return Matrix4x4(*value_list)
+
+    @functools.cache
+    def m4x4_times_v4(first, second: Vector4) -> Vector4:
+        # as we only allow 4x4 matrices, every matrix multiplication is always possible
+        calc = lambda x, vector_value, n: getattr(first, f"m{x}{n}") * vector_value
+
+        # writing out the for loop to maybe get extra performance. pythons performance is pretty poor anyway
+        value_list = [
+            calc(0, second.x, 0) + calc(0, second.y, 1) + calc(0, second.z, 2) + calc(0, second.w, 3),
+            calc(1, second.x, 0) + calc(1, second.y, 1) + calc(1, second.z, 2) + calc(1, second.w, 3),
+            calc(2, second.x, 0) + calc(2, second.y, 1) + calc(2, second.z, 2) + calc(2, second.w, 3),
+            calc(3, second.x, 0) + calc(3, second.y, 1) + calc(3, second.z, 2) + calc(3, second.w, 3)
+        ]
+
+        return Vector4(*value_list)
+
+    # @functools.cache
+    def __mul__(self, other):
+        if type(other) == Matrix4x4:
+            return self.m4x4_times_m4x4(other)
+        elif type(other) == Vector4:
+            return self.m4x4_times_v4(other)
+        else:
+            raise TypeError
 
 # endregion
 
@@ -256,6 +332,23 @@ class Triangle:
 
 
 # endregion
+
+# region renderingData
+@dataclass
+class DrawBuffer:
+    triangles = []
+
+    def __init__(self, tris=[]):
+        self.triangles = tris
+
+    def project(self,projection):
+        new_buffer = DrawBuffer(self.triangles)
+        for t in new_buffer.triangles:
+            t.vert1 = projection(t.vert1)
+        return new_buffer
+
+# endregion
+
 
 # region math
 def dot(a, b) -> float:
@@ -358,109 +451,6 @@ class vectors_unit_test(unittest.TestCase):
 
 # endregion
 
-
-"""[insert short description here]"""
-"""Onni Kolkka 
-150832953 (student number)
-created 12.12.2022 20.31
-"""
-
-"""I believe this code is really self explanatory
-so added comments would only make reading harder for the most part"""
-
-
-# region matrix
-
-@dataclass
-class Matrix4x4:
-    def __init__(self, *args, suppress=False, eye=False):
-
-        if eye:
-            for i in range(4 * 4):
-                # creates eye matrix
-                setattr(self, f"m{i % 4}{int(i / 4)}", 1.0 if int(i / 4) == i % 4 else 0.0)
-            return
-
-        elif len(args) != 4 * 4:
-            if not suppress:
-                if len(args) > 0:
-                    raise Exception("\33[31mCreating Matrix with too few values "
-                                    "\33[33m(filled rest of the matrix with 0.0)\33[0m")
-
-            # fills matrix so it contains every elements
-            args += tuple([0.0] * (4 * 4 - len(args)))
-
-        for number, value in enumerate(args, start=0):
-            setattr(self, f"m{number % 4}{int(number / 4)}", value)
-            # this result in attributes like   matrix.m10  matrix.m03  matrix.m33
-
-    def __eq__(self, other) -> bool:
-        # guard clause for different data type
-        if type(other) != type(self):
-            return False
-
-        for number in range(4*4):
-            if getattr(self, f"m{number % 4}{int(number / 4)}") != getattr(self, f"m{number % 4}{int(number / 4)}"):
-                return False
-        else:
-            return True
-
-
-    # @functools.cache
-    def m4x4_times_m4x4(first, second):
-        # as we only allow 4x4 matrices, every matrix multiplication is always possible
-        calc = lambda x, y, n: getattr(first, f"m{x}{n}") * getattr(second, f"m{n}{y}")
-
-        # writing out the for loop to maybe get extra performance. pythons performance is pretty poor anyway
-        value_list = [
-            calc(0, 0, 0) + calc(0, 0, 1) + calc(0, 0, 2) + calc(0, 0, 3),
-            calc(1, 0, 0) + calc(1, 0, 1) + calc(1, 0, 2) + calc(1, 0, 3),
-            calc(2, 0, 0) + calc(2, 0, 1) + calc(2, 0, 2) + calc(2, 0, 3),
-            calc(3, 0, 0) + calc(3, 0, 1) + calc(3, 0, 2) + calc(3, 0, 3),
-
-            calc(0, 1, 0) + calc(0, 1, 1) + calc(0, 1, 2) + calc(0, 1, 3),
-            calc(1, 1, 0) + calc(1, 1, 1) + calc(1, 1, 2) + calc(1, 1, 3),
-            calc(2, 1, 0) + calc(2, 1, 1) + calc(2, 1, 2) + calc(2, 1, 3),
-            calc(3, 1, 0) + calc(3, 1, 1) + calc(3, 1, 2) + calc(3, 1, 3),
-
-            calc(0, 2, 0) + calc(0, 2, 1) + calc(0, 2, 2) + calc(0, 2, 3),
-            calc(1, 2, 0) + calc(1, 2, 1) + calc(1, 2, 2) + calc(1, 2, 3),
-            calc(2, 2, 0) + calc(2, 2, 1) + calc(2, 2, 2) + calc(2, 2, 3),
-            calc(3, 2, 0) + calc(3, 2, 1) + calc(3, 2, 2) + calc(3, 2, 3),
-
-            calc(0, 3, 0) + calc(0, 3, 1) + calc(0, 3, 2) + calc(0, 3, 3),
-            calc(1, 3, 0) + calc(1, 3, 1) + calc(1, 3, 2) + calc(1, 3, 3),
-            calc(2, 3, 0) + calc(2, 3, 1) + calc(2, 3, 2) + calc(2, 3, 3),
-            calc(3, 3, 0) + calc(3, 3, 1) + calc(3, 3, 2) + calc(3, 3, 3)
-        ]
-
-        return Matrix4x4(*value_list)
-
-    # @functools.cache
-    def m4x4_times_v4(first, second: Vector4) -> Vector4:
-        # as we only allow 4x4 matrices, every matrix multiplication is always possible
-        calc = lambda x, vector_value, n: getattr(first, f"m{x}{n}") * vector_value
-
-        # writing out the for loop to maybe get extra performance. pythons performance is pretty poor anyway
-        value_list = [
-            calc(0, second.x, 0) + calc(0, second.y, 1) + calc(0, second.z, 2) + calc(0, second.w, 3),
-            calc(1, second.x, 0) + calc(1, second.y, 1) + calc(1, second.z, 2) + calc(1, second.w, 3),
-            calc(2, second.x, 0) + calc(2, second.y, 1) + calc(2, second.z, 2) + calc(2, second.w, 3),
-            calc(3, second.x, 0) + calc(3, second.y, 1) + calc(3, second.z, 2) + calc(3, second.w, 3)
-        ]
-
-        return Vector4(*value_list)
-
-    # @functools.cache
-    def __mul__(self, other):
-        if type(other) == Matrix4x4:
-            return self.m4x4_times_m4x4(other)
-        elif type(other) == Vector4:
-            return self.m4x4_times_v4(other)
-        else:
-            raise TypeError
-
-# endregion
 
 # region uTest
 class matrices_unit_test(unittest.TestCase):

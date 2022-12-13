@@ -1,8 +1,7 @@
-"""Main script keeping this whole thing togeather"""
-
+"""[insert short description here]"""
 """Onni Kolkka 
 150832953 (student number)
-created 10.12.2022 14.54
+created 14.12.2022 0.14
 """
 
 

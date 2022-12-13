@@ -2,23 +2,10 @@
 150832953 (student number)
 created 10.12.2022 15.07
 """
-import sys
-from tkinter import *
-from dataclasses import dataclass
 import math
 import unittest
-
-import sys
-import pathlib
-sys.path.append(str(pathlib.Path(__file__).parent.parent.parent))
-from GameEngineV5.mathAndStructs import *
-from GameEngineV5 import *
-from GameEngineV5.internals.tk_inter_inter import *
-if __name__ == "some random stuff to trick pep8 thinking that i have mathAndStructs module imported (I do)":
-    from ..mathAndStructs import *
-    from .tk_inter_inter import Interpeter
-
-
+from  ._tk_inter_inter import *
+from .structures import *
 
 class CameraRender:
     tris=[]
@@ -102,8 +89,8 @@ class CameraRender:
 
         point_v4 = point.vec4()
 
-        x_fov = 1
-        y_fov = 1
+        x_fov = 100
+        y_fov = 100
         x_off = 0
         y_off = 0
         near = .1
