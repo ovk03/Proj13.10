@@ -6,7 +6,7 @@ created 12.12.2022 15.34
 from GameEngineV5 import *
 import time
 
-inter=interpeter()
+inter=Interpeter()
 while inter.draw():
     time.sleep(0.001)
 

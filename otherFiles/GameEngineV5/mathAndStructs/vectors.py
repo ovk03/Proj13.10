@@ -1,4 +1,5 @@
 """Handles vector types and their math"""
+import functools
 
 """Onni Kolkka 
 150832953 (student number)
@@ -14,21 +15,36 @@ import math
 import logging
 
 
+# region renderingData
+@dataclass
+class draw_buffer:
+    triangles = []
+
+    def __init__(self, tris=[]):
+        self.triangles = tris
+
+    def project(self,object,projection):
+        new_buffer = draw_buffer(self.triangles)
+        for t in new_buffer.triangles:
+            t.vert1 = projection(t.vert1)
+        return new_buffer
+
+# endregion
 
 # region vect
 @dataclass
 class Vector2:
 
     def __init__(self, x=0.0, y=0.0):
-        self.x = x
-        self.y = y
+        self.x = float(x)
+        self.y = float(y)
 
     def __eq__(self, other)->bool:
         # guard clause for different data type
         if type(other) != type(self):
             return False
 
-        if other.x == self.x and other.y == self.y:
+        if math.isclose(other.x,self.x,abs_tol=1e-12) and math.isclose(other.y,self.y,abs_tol=1e-12):
             return True
 
         else:
@@ -39,29 +55,39 @@ class Vector2:
         if type(other) is Vector2:
             return float(self.x * other.x + self.y * other.y)
         elif type(other) is float:
-            return Vector2(
-                self.x * other,
-                self.y * other
-            )
+            return Vector2(self.x * other,
+                           self.y * other)
         else:
             raise TypeError
+
+    def __add__(self, other):
+        # guard clause
+        if type(other) != type(self):
+            raise TypeError
+
+        return Vector2(self.x + other.x,
+                       self.y + other.y)
+
+    def __repr__(self):
+        return f"{self.x:.2f} :  {self.y:.2f}"
+
 
 @dataclass
 class Vector3:
 
     def __init__(self, x=0.0, y=0.0, z=0.0):
-        self.x = x
-        self.y = y
-        self.z = z
+        self.x = float(x)
+        self.y = float(y)
+        self.z = float(z)
 
     def __eq__(self, other)->bool:
         # guard clause for different data type
         if type(other) != type(self):
             return False
 
-        if other.x == self.x and \
-                other.y == self.y and \
-                other.z == self.z:
+        if math.isclose(other.x,self.x,abs_tol=1e-12) and \
+                math.isclose(other.y,self.y,abs_tol=1e-12) and \
+                math.isclose(other.z,self.z,abs_tol=1e-12):
             return True
 
         else:
@@ -71,30 +97,51 @@ class Vector3:
         if type(other) is Vector3:
             return float(self.x * other.x + self.y * other.y + self.z * other.z)
         elif type(other) is float:
-            self.x *= other
-            self.y *= other
-            self.z *= other
+            return Vector3(self.x * other,
+                           self.y * other,
+                           self.z * other)
         else:
             raise TypeError
+
+    def __add__(self, other):
+        # guard clause
+        if type(other) != type(self):
+            raise TypeError(f"{type(other).__name__} is not Vector3")
+
+        return Vector3(self.x + other.x,
+                       self.y + other.y,
+                       self.z + other.z)
+
+    def __repr__(self):
+        return f"{self.x:.2f} :  {self.y:.2f} :  {self.z:.2f}"
+
+    def vec2(self,drop_y=False):
+        if drop_y:
+            return Vector2(self.x,self.z)
+        else:
+            return Vector2(self.x,self.y)
+
+    def vec4(self):
+        return Vector4(self.x, self.y, self.z,1)
+
 
 @dataclass
 class Vector4:
 
     def __init__(self, x=0.0, y=0.0, z=0.0, w=0.0):
-        self.x = x
-        self.y = y
-        self.z = z
-        self.w = w
+        self.x = float(x)
+        self.y = float(y)
+        self.z = float(z)
+        self.w = float(w)
 
     def __eq__(self, other)->bool:
         # guard clause for different data type
         if type(other) != type(self):
             return False
-
-        if other.x == self.x and \
-                other.y == self.y and \
-                other.z == self.z and \
-                other.w == self.w:
+        if math.isclose(other.x,self.x,abs_tol=1e-12) and \
+                math.isclose(other.y,self.y,abs_tol=1e-12) and \
+                math.isclose(other.z,self.z,abs_tol=1e-12) and \
+                math.isclose(other.w,self.w,abs_tol=1e-12):
             return True
 
         else:
@@ -105,14 +152,37 @@ class Vector4:
             # as multiplication order doesn't matter, let's just let matrices handle this
             return other*self
         elif type(other) is float:
-            self.x *= other
-            self.y *= other
-            self.z *= other
-            self.w *= other
+            return Vector4(self.x * other,
+                           self.y * other,
+                           self.z * other,
+                           self.w * other)
         elif type(other) is Vector4:
             return float(self.x * other.x + self.y * other.y + self.z * other.z + self.w * other.w)
         else:
             raise TypeError
+
+
+    def __add__(self, other):
+        # guard clause
+        if type(other) != type(self):
+            raise TypeError
+
+        return Vector4(self.x + other.x,
+                       self.y + other.y,
+                       self.z + other.z,
+                       self.w + other.w)
+
+    def vec2(self,drop_y=False):
+        if drop_y:
+            return Vector2(self.x,self.z)
+        else:
+            return Vector3(self.x,self.y)
+
+    def vec3(self):
+        return Vector3(self.x, self.y,self.z)
+
+    def __repr__(self):
+        return f"{self.x:.2f} :  {self.y:.2f} :  {self.z:.2f} :  {self.w:.2f}"
 
 
 # endregion
@@ -257,7 +327,7 @@ def _rot3d(vector_to_rot, axis_vector, angle):
 
 # region uTest
 class vectors_unit_test(unittest.TestCase):
-    def test_dot(self):
+    def test(self):
         a2 = Vector2(1, 2)
         b2 = Vector2(1, 0)
 
@@ -336,6 +406,7 @@ class Matrix4x4:
             return True
 
 
+    # @functools.cache
     def m4x4_times_m4x4(first, second):
         # as we only allow 4x4 matrices, every matrix multiplication is always possible
         calc = lambda x, y, n: getattr(first, f"m{x}{n}") * getattr(second, f"m{n}{y}")
@@ -365,20 +436,22 @@ class Matrix4x4:
 
         return Matrix4x4(*value_list)
 
+    # @functools.cache
     def m4x4_times_v4(first, second: Vector4) -> Vector4:
         # as we only allow 4x4 matrices, every matrix multiplication is always possible
         calc = lambda x, vector_value, n: getattr(first, f"m{x}{n}") * vector_value
 
         # writing out the for loop to maybe get extra performance. pythons performance is pretty poor anyway
         value_list = [
-            calc(0, second.x, 0) + calc(0, second.x, 1) + calc(0, second.x, 2) + calc(0, second.x, 3),
-            calc(1, second.y, 0) + calc(1, second.y, 1) + calc(1, second.y, 2) + calc(1, second.y, 3),
-            calc(2, second.z, 0) + calc(2, second.z, 1) + calc(2, second.z, 2) + calc(2, second.z, 3),
-            calc(3, second.w, 0) + calc(3, second.w, 1) + calc(3, second.w, 2) + calc(3, second.w, 3)
+            calc(0, second.x, 0) + calc(0, second.y, 1) + calc(0, second.z, 2) + calc(0, second.w, 3),
+            calc(1, second.x, 0) + calc(1, second.y, 1) + calc(1, second.z, 2) + calc(1, second.w, 3),
+            calc(2, second.x, 0) + calc(2, second.y, 1) + calc(2, second.z, 2) + calc(2, second.w, 3),
+            calc(3, second.x, 0) + calc(3, second.y, 1) + calc(3, second.z, 2) + calc(3, second.w, 3)
         ]
 
         return Vector4(*value_list)
 
+    # @functools.cache
     def __mul__(self, other):
         if type(other) == Matrix4x4:
             return self.m4x4_times_m4x4(other)
@@ -391,7 +464,7 @@ class Matrix4x4:
 
 # region uTest
 class matrices_unit_test(unittest.TestCase):
-    def test_dot(self):
+    def test(self):
         self.assertIs(type(Matrix4x4(suppress=True)), Matrix4x4)
         self.assertIs(type(Matrix4x4(eye=True)), Matrix4x4)
 
