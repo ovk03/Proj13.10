@@ -15,36 +15,29 @@ import unittest
 import cProfile
 
 def tri(pos):
-    return Triangle(
-        Vector3(pos.x,pos.y+.3,1),
-        Vector3(pos.x+.2,pos.y-.2,1),
-        Vector3(pos.x-.2,pos.y-.2,1),
-        Vector3()
-    )
-def quad(pos,first=True):
-    if(first):
-        return [Triangle(
-            Vector3(pos.x-.1,pos.y-.1,pos.z),
-            Vector3(pos.x+.1,pos.y-.1,pos.z),
-            Vector3(pos.x+.1,pos.y+.1,pos.z),
-            Vector3()
-        ),Triangle(
-            Vector3(pos.x-.1,pos.y-.1,pos.z),
-            Vector3(pos.x+.1,pos.y+.1,pos.z),
-            Vector3(pos.x-.1,pos.y+.1,pos.z),
-            Vector3()
-        )]
+    return [
+        [pos.x,pos.y+.3,1],
+        [pos.x+.2,pos.y-.2,1],
+        [pos.x-.2,pos.y-.2,1]]
+def quad(pos):
+    return [
+        [pos[0]-.1,pos[1]-.1,pos[2]],
+        [pos[0]+.1,pos[1]-.1,pos[2]],
+        [pos[0]+.1,pos[1]+.1,pos[2]],
+        [pos[0]-.1,pos[1]-.1,pos[2]],
+        [pos[0]+.1,pos[1]+.1,pos[2]],
+        [pos[0]-.1,pos[1]+.1,pos[2]]]
 
 def cube(x_pos,rot):
     vert=[]*8
-    vert.append(Vector3(100+x_pos,100,100))
-    vert.append(Vector3(-100+x_pos,100,100))
-    vert.append(Vector3(-100+x_pos,-100,100))
-    vert.append(Vector3(100+x_pos,-100,100))
-    vert.append(Vector3(100+x_pos,100,-100))
-    vert.append(Vector3(-100+x_pos,100,-100))
-    vert.append(Vector3(-100+x_pos,-100,-100))
-    vert.append(Vector3(100+x_pos,-100,-100))
+    vert.append([100+x_pos,100,100])
+    vert.append([-100+x_pos,100,100])
+    vert.append([-100+x_pos,-100,100])
+    vert.append([100+x_pos,-100,100])
+    vert.append([100+x_pos,100,-100])
+    vert.append([-100+x_pos,100,-100])
+    vert.append([-100+x_pos,-100,-100])
+    vert.append([100+x_pos,-100,-100])
 
     return [tri(v) for v in vert]
 
@@ -53,23 +46,23 @@ def grid_test():
     for x in range(-5,6):
         for y in range(-5,6):
             for z in range(-2,3):
-                l.extend(quad(Vector3(x,y,z)))
+                l.extend(quad([x,y,z]))
     for i in l:
-        if type(i) != Triangle:
+        if type(i) is not list:
             raise TypeError
     return l
 
 
 def test():
     try:
-        inter=CameraRender(pos=Vector3(0,0,-10))
+        inter=CameraRender(pos=[0,0,-10])
         i=0
 
         print(len(grid_test()))
-        inter.render(DrawBuffer(grid_test()))
+        inter.render(grid_test())
         t=0
         while inter.render():
-            inter.camera_rot=Vector3(math.cos(i/3.3)*6,math.sin(i/7)*6,0)
+            inter.camera_rot=[math.cos(i/3.3)*6,math.sin(i/7)*6,0]
             print(f"frame rate: {1 / (t + time.time()+1e-20)}")
             t = -time.time()
             i += 1
