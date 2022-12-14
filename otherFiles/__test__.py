@@ -45,7 +45,7 @@ def grid_test():
 
 def test():
     try:
-        inter=CameraRender(pos=[0,0,-10])
+        inter=CameraRender(pos=[0,0,2])
         i=0
 
         print(len(grid_test()))
@@ -53,6 +53,7 @@ def test():
         t=0
         while inter.render(grid_test()):
             inter.camera_rot=[math.cos(i/3.3)*6,math.sin(i/7)*6,0]
+            inter.camera_pos=[math.cos(i/3.3)*1,math.sin(i/7)*1,0]
             # print(inter.camera_rot)
             print(f"frame rate: {1 / (t + time.time()+1e-20)}")
             t = -time.time()

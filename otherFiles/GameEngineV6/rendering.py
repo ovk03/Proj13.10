@@ -95,7 +95,7 @@ class CameraRender:
         y_fov = 16/10
         x_off = 0
         y_off = 0
-        near = .1
+        near = 1
         far = 1000
         # I really hope the formulas I found online are correct
         proj = [
@@ -132,33 +132,29 @@ class CameraRender:
         return list(filter(lambda t: t.normal * self.camera_rot > 0, triangles))
 
 
-    def basic_frustum_culling(self,triangles: list):
-        filter_func = lambda triangle: (0.01 >= triangle.vert1[2]) and \
-                                       (0.01 >= triangle.vert2[2]) and \
-                                       (0.01 >= triangle.vert3[2])
-        triangles=list(filter(filter_func, triangles))
+    def basic_frustum_culling(self,triangle: list):
+        if (0.0 < triangle[0][2]) and \
+           (0.0 < triangle[1][2]) and \
+           (0.0 < triangle[2][2]):
+            return triangle
+        else:
+            print("not in view:")
+            print(triangle[0][2],triangle[1][2],triangle[2][2])
+            return []
 
-        for t in triangles:
-            t.depth = (t.vert1.z + t.vert2.z + t.vert3.z) / 3
-
-        return triangles
-
-
-    def frustum_culling(self,triangles: list):
+    def frustum_culling(self,triangle: list):
 
         # HOW TF DOES PYTHON NOT HAVE SIGN FUNCTION ???????
         sign = lambda f: f/math.fabs(f) if f != 0 else 0
 
-        filter_func = lambda triangle: ((-1 <= triangle.vert1[0]  <= 1 or -1 <= triangle.vert1[1] <= 1) and
-                                        (-1 <= triangle.vert2[0]  <= 1 or -1 <= triangle.vert2[1] <= 1) and
-                                        (-1 <= triangle.vert3[0]  <= 1 or -1 <= triangle.vert3[1] <= 1)) or \
-                                       (not (sign(triangle.vert1[0]) == sign(triangle.vert2[0]) == sign(triangle.vert3[0])) and
-                                        not (sign(triangle.vert1[1]) == sign(triangle.vert2[1]) == sign(triangle.vert3[1])))
-
-        triangles=list(filter(filter_func, triangles))
-
-        return triangles
-
+        if ((-1 <= triangle[0][0] <= 1 or -1 <= triangle[0][1] <= 1) and
+            (-1 <= triangle[1][0] <= 1 or -1 <= triangle[1][1] <= 1) and
+            (-1 <= triangle[2][0] <= 1 or -1 <= triangle[2][1] <= 1)) or \
+           (not (sign(triangle[0][0]) == sign(triangle[0][0]) == sign(triangle[0][0])) and
+            not (sign(triangle[1][1]) == sign(triangle[1][1]) == sign(triangle[1][1]))):
+            return triangle
+        else:
+            return []
 
     def render(self,buffer=None) -> bool:
         print(self.camera_rot)
@@ -166,17 +162,21 @@ class CameraRender:
             buffer = self.buffer
         else:
             self.buffer = buffer
-        new_buffer=[]
+
+        step_buffer_first = []
         for t in buffer:
-            new_buffer.append(self.camera_transform_matrix(t))
+            step_buffer_first.append(self.camera_transform_matrix(t))
 
-        # buffer.triangles=self.basic_frustum_culling(buffer.triangles)
+        step_buffer_second = []
+        for i in range(0,len(step_buffer_first),3):
+            step_buffer_second.extend(self.basic_frustum_culling(
+                [step_buffer_first[i],step_buffer_first[i+1],step_buffer_first[i+2]]))
 
-        final_buffer=[]
-        for t in new_buffer:
-            final_buffer.append(self.camera_project_matrix(t))
+        step_buffer_first = []
+        for t in step_buffer_second:
+            step_buffer_first.append(self.camera_project_matrix(t))
 
-        if self.inter.draw(final_buffer):
+        if self.inter.draw(step_buffer_first):
             return True
         else:
             return False
