@@ -95,7 +95,7 @@ class CameraRender:
         x_off = 0
         y_off = 0
         near = .1
-        far = 10000
+        far = 1000
         # I really hope the formulas I found online are correct
         proj = Matrix4x4 \
             (x_fov, 0, x_off, 0,
@@ -240,6 +240,8 @@ class proj_unit_test(unittest.TestCase):
             self.assertTrue(-1 <= new_point.x <= 1)
             self.assertTrue(-1 <= new_point.y <= 1)
             self.assertTrue(-1 <= new_point.z <= 1)
+
+        print(rend.camera_project_matrix(rend.camera_transform_matrix(Vector3(1,1,0))))
 
         rend.camera_rot = Vector3(0, 0, 0)
         rend.camera_pos = Vector3(0, 0, -1)
