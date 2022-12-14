@@ -60,7 +60,6 @@ def test():
         print(len(grid_test()))
         inter.camera_rot=(0,90,0)
         inter.render(grid_test())
-        time.sleep(1)
         t=0
         while inter.render(grid_test()):
             inter.camera_rot=(0,i*5+90,0)

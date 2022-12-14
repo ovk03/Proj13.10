@@ -280,7 +280,7 @@ def m4x4_times_v4(first: tuple, second: tuple) -> tuple:
     # as we only allow 4x4 matrices, every matrix multiplication is always possible
 
     # writing out the for loop to maybe get extra performance. pythons performance is pretty poor anyway
-    value_list = (
+    return (
         first[0+4*0]*second[0]+
         first[0+4*1]*second[1]+
         first[0+4*2]*second[2]+
@@ -301,7 +301,6 @@ def m4x4_times_v4(first: tuple, second: tuple) -> tuple:
         first[3+4*2]*second[2]+
         first[3+4*3]*second[3],
     )
-    return value_list
 
 # @dataclass
 # class Matrix4x4:

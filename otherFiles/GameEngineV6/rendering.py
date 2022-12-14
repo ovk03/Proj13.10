@@ -7,6 +7,7 @@ import unittest
 import copy
 from  ._tk_inter_inter import *
 from .structures import *
+from time import clock
 
 class CameraRender:
     buffer=None
@@ -23,11 +24,11 @@ class CameraRender:
     def camera_transform_matrix(self,point_to_transform: tuple):
         # https://en.wikipedia.org/wiki/Rotation_matrix
         # we also need depth to decide what goes above what (z buffer) so we need 4x4 projection matrix
-
+        t=-clock()
         point_v4 = (point_to_transform[0] - self.camera_pos[0],
-                           point_to_transform[1] - self.camera_pos[1],
-                           point_to_transform[2] - self.camera_pos[2],
-                           1)
+                    point_to_transform[1] - self.camera_pos[1],
+                    point_to_transform[2] - self.camera_pos[2],
+                    1)
 
         # region old readable code (does same as current optimized aka unreadable code)
         # # python thinks Vector times Float is Float XD
@@ -79,35 +80,32 @@ class CameraRender:
         # endregion
 
 
-        anglex = self.camera_rot[0]*math.radians(1)
-        sinx = math.sin(anglex)
-        cosx = math.cos(anglex)
-        angley = self.camera_rot[1]*math.radians(1)
-        siny = math.sin(angley)
-        cosy = math.cos(angley)
-        anglez = self.camera_rot[2]*math.radians(1)
-        sinz = math.sin(anglez)
-        cosz = math.cos(anglez)
+        sinx = math.sin(self.camera_rot[0]*math.radians(1))
+        cosx = math.cos(self.camera_rot[0]*math.radians(1))
+        siny = math.sin(self.camera_rot[1]*math.radians(1))
+        cosy = math.cos(self.camera_rot[1]*math.radians(1))
+        sinz = math.sin(self.camera_rot[2]*math.radians(1))
+        cosz = math.cos(self.camera_rot[2]*math.radians(1))
         rot_m4=(cosx*cosy,
-                cosx*siny*sinz-sinx*siny,
+                cosx*siny*sinz-sinx*cosz,
                 cosx*siny*cosz+sinx*sinz,0,
 
                 sinx*cosy,
-                sinx*siny*sinz+cosx*cosy,
+                sinx*siny*sinz+cosx*cosz,
                 sinx*siny*cosz-cosx*sinz,0,
 
                 -siny,
                 cosy*sinz,
-                siny*cosz,0,
+                cosy*cosz,0,
 
                 0,0,0,1)
 
         point_v4=m4x4_times_v4(rot_m4,point_v4)
 
+        print(t+clock())
         return (point_v4[0] / point_v4[3],
                 point_v4[1] / point_v4[3],
                 point_v4[2] / point_v4[3])
-
 
     def camera_project_matrix(self,point):
         # https://en.wikipedia.org/wiki/Camera_matrix
@@ -221,37 +219,37 @@ class proj_unit_test(unittest.TestCase):
         # self.assertEqual(len(new_tris),3)
 
 
-        rend.camera_rot = [0, 0, 0]
-        rend.camera_pos = [0, 0, 0]
-        point = [0, 0, 1]
+        rend.camera_rot = (0, 0, 0)
+        rend.camera_pos = (0, 0, 0)
+        point = (0, 0, 1)
         new_point = rend.camera_transform_matrix(point)
-        self.assertEqual(new_point, [0, 0, 1])
+        self.assertEqual(new_point, tuple([0, 0, 1]))
 
         rend.camera_rot = [0, 90, 0]
         new_point = rend.camera_transform_matrix(point)
-        self.assertEqual(new_point, [-1, 0, 6.123233995736766e-17])
+        self.assertEqual(new_point, tuple([-1, 0, 6.123233995736766e-17]))
 
         rend.camera_rot = [0, 90 * 3177, 0]
         new_point = rend.camera_transform_matrix( point)
-        self.assertEqual(new_point, [-1, 0, 1.2880994098674778e-13])
+        self.assertEqual(new_point, tuple([-1, 0, 1.2880994098674778e-13]))
 
         rend.camera_rot = [0, 180, 0]
         point = [0, 1, 1]
         new_point = rend.camera_transform_matrix(point)
-        self.assertEqual(new_point, [-1.2246467991473532e-16, 1, -1])
+        self.assertEqual(new_point, tuple([-1.2246467991473532e-16, 1, -1]))
 
         rend.camera_rot = [0, 90, 0]
         point = [0, 0, 1]
         new_point = rend.camera_transform_matrix(point)
-        self.assertEqual(new_point, [-1, 0, 6.123233995736766e-17])
+        self.assertEqual(new_point, tuple([-1, 0, 6.123233995736766e-17]))
 
         rend.camera_rot = [90, 270, -90]
         new_point = rend.camera_transform_matrix(point)
-        self.assertEqual(new_point, [-1, 1.2246467991473532e-16, -1.1248198369963932e-32])
+        self.assertEqual(new_point, tuple([-1, 1.2246467991473532e-16, -1.1248198369963932e-32]))
 
         rend.camera_rot = [90,270,90]
         new_point = rend.camera_transform_matrix(point)
-        self.assertEqual(new_point, [1, 0, -1.1248198369963932e-32])
+        self.assertEqual(new_point, tuple([1, 0, -1.1248198369963932e-32]))
 
         rend.camera_rot = [0, 0, 0]
         rend.camera_pos = [0, 0, -1]
