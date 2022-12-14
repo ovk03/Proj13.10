@@ -68,7 +68,7 @@ class Interpeter:
         if(len(new_buffer)==0):
             print("no triangles in buffer")
 
-        for i in range(len(new_buffer)-2):
+        for i in range(0,len(new_buffer),3):
             tri = new_buffer[i:i+3]
             tri = self.rel_to_pix(tri)
             self.canvas.create_polygon(self.flip_y_array(tri))

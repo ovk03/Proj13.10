@@ -77,8 +77,8 @@ class CameraRender:
         # print(point_v4)
 
         return [point_v4[0] / point_v4[3],
-                       point_v4[1] / point_v4[3],
-                       point_v4[2] / point_v4[3]]
+                point_v4[1] / point_v4[3],
+                point_v4[2] / point_v4[3]]
 
 
     def camera_project_matrix(self,point):
@@ -96,7 +96,7 @@ class CameraRender:
         x_off = 0
         y_off = 0
         near = .1
-        far = 100
+        far = 1000
         # I really hope the formulas I found online are correct
         proj = [
              x_fov, 0, x_off, 0,
@@ -125,7 +125,8 @@ class CameraRender:
         except ZeroDivisionError as e:
             logging.getLogger("render").warning(e)
             logging.getLogger("render").warning(f"{self.camera_rot}  ,  {self.camera_pos}")
-            logging.getLogger("render").warning(f"{point}  ,  {point_v4.vec3()}")
+            logging.getLogger("render").warning(f"{point}  ,  {point_v4}")
+            logging.getLogger("render").warning(f"{proj}")
 
     def backface_culling(self,triangles: list):
         return list(filter(lambda t: t.normal * self.camera_rot > 0, triangles))
@@ -160,21 +161,22 @@ class CameraRender:
 
 
     def render(self,buffer=None) -> bool:
-
+        print(self.camera_rot)
         if type(buffer) is not list:
             buffer = self.buffer
         else:
             self.buffer = buffer
-
+        new_buffer=[]
         for t in buffer:
-            t= self.camera_transform_matrix(t)
+            new_buffer.append(self.camera_transform_matrix(t))
 
         # buffer.triangles=self.basic_frustum_culling(buffer.triangles)
 
-        for t in buffer:
-            t= self.camera_transform_matrix(t)
+        final_buffer=[]
+        for t in new_buffer:
+            final_buffer.append(self.camera_project_matrix(t))
 
-        if self.inter.draw(buffer):
+        if self.inter.draw(final_buffer):
             return True
         else:
             return False
@@ -185,10 +187,10 @@ class proj_unit_test(unittest.TestCase):
 
         rend = CameraRender()
 
-        tris = []
-        tris.append([0.1, 0, 1, 0.1, 0, 10, 0.0, 0, 0])
-        tris.append([2, 1, 1, -1, 0, 10, 0.0, 2, 0])
-        tris.append([-3, 1, 1, -1, -2, 10, -2, -1, 0])
+        # tris = []
+        # tris.append([0.1, 0, 1, 0.1, 0, 10, 0.0, 0, 0])
+        # tris.append([2, 1, 1, -1, 0, 10, 0.0, 2, 0])
+        # tris.append([-3, 1, 1, -1, -2, 10, -2, -1, 0])
         # new_tris = rend.frustum_culling(tris)
 
         # self.assertEqual(len(new_tris),3)
@@ -236,7 +238,10 @@ class proj_unit_test(unittest.TestCase):
             self.assertTrue(-1 <= new_point[0] <= 1)
             self.assertTrue(-1 <= new_point[1] <= 1)
             self.assertTrue(-1 <= new_point[2] <= 1)
-        print(rend.camera_project_matrix(rend.camera_transform_matrix([0, 0, 0])))
+        a=[0,0,0]
+        print(rend.camera_project_matrix(rend.camera_transform_matrix(a)))
+        a=rend.camera_project_matrix(rend.camera_transform_matrix(a))
+        print(a)
 
         rend.camera_rot = [0, 0, 0]
         rend.camera_pos = [0, 0, -1]

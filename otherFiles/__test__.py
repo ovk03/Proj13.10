@@ -19,6 +19,7 @@ def tri(pos):
         [pos.x,pos.y+.3,1],
         [pos.x+.2,pos.y-.2,1],
         [pos.x-.2,pos.y-.2,1]]
+
 def quad(pos):
     return [
         [pos[0]-.1,pos[1]-.1,pos[2]],
@@ -28,24 +29,13 @@ def quad(pos):
         [pos[0]+.1,pos[1]+.1,pos[2]],
         [pos[0]-.1,pos[1]+.1,pos[2]]]
 
-def cube(x_pos,rot):
-    vert=[]*8
-    vert.append([100+x_pos,100,100])
-    vert.append([-100+x_pos,100,100])
-    vert.append([-100+x_pos,-100,100])
-    vert.append([100+x_pos,-100,100])
-    vert.append([100+x_pos,100,-100])
-    vert.append([-100+x_pos,100,-100])
-    vert.append([-100+x_pos,-100,-100])
-    vert.append([100+x_pos,-100,-100])
 
-    return [tri(v) for v in vert]
 
 def grid_test():
     l=[]
     for x in range(-5,6):
         for y in range(-5,6):
-            for z in range(-2,3):
+            for z in range(1,9):
                 l.extend(quad([x,y,z]))
     for i in l:
         if type(i) is not list:
@@ -61,8 +51,9 @@ def test():
         print(len(grid_test()))
         inter.render(grid_test())
         t=0
-        while inter.render():
+        while inter.render(grid_test()):
             inter.camera_rot=[math.cos(i/3.3)*6,math.sin(i/7)*6,0]
+            # print(inter.camera_rot)
             print(f"frame rate: {1 / (t + time.time()+1e-20)}")
             t = -time.time()
             i += 1
