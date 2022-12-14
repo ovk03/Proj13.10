@@ -14,30 +14,79 @@ import unittest
 import cProfile
 
 def tri(pos):
-    vert_top=[pos[0],pos[1]+0.5,pos[2]]
-    vert_left = [pos[0]-0.1,pos[1],pos[2]-0.1]
-    vert_right = [pos[0]+0.1,pos[1],pos[2]-0.1]
-    vert_back = [pos[0],pos[1],pos[2]+0.3]
-    return [
-        vert_top,
+    vert_top=(pos[0],pos[1]+0.5,pos[2])
+    vert_left = (pos[0]-0.1,pos[1],pos[2]-0.1)
+    vert_right = (pos[0]+0.1,pos[1],pos[2]-0.1)
+    vert_back = (pos[0],pos[1],pos[2]+0.3)
+    return (
+        (vert_top,
         vert_left,
+        vert_right),
+        (vert_top,
         vert_right,
-        vert_top,
-        vert_right,
+        vert_back),
+        (vert_top,
         vert_back,
-        vert_top,
-        vert_back,
-        vert_left]
+        vert_left))
 
 def quad(pos):
-    return [
-        [pos[0]-.1,pos[1]-.1,pos[2]],
-        [pos[0]+.1,pos[1]-.1,pos[2]],
-        [pos[0]+.1,pos[1]+.1,pos[2]],
-        [pos[0]-.1,pos[1]-.1,pos[2]],
-        [pos[0]+.1,pos[1]+.1,pos[2]],
-        [pos[0]-.1,pos[1]+.1,pos[2]]]
+    return (
+        (pos[0]-.1,pos[1]-.1,pos[2]),
+        (pos[0]+.1,pos[1]-.1,pos[2]),
+        (pos[0]+.1,pos[1]+.1,pos[2]),
+        (pos[0]-.1,pos[1]-.1,pos[2]),
+        (pos[0]+.1,pos[1]+.1,pos[2]),
+        (pos[0]-.1,pos[1]+.1,pos[2]))
 
+
+def box(pos):
+    _ri_up_frnt = (pos[0]+.1,pos[1]+.1,pos[2]-.1)
+    _le_up_frnt = (pos[0]-.1,pos[1]+.1,pos[2]-.1)
+    _ri_up_back = (pos[0]+.1,pos[1]+.1,pos[2]+.1)
+    _le_up_back = (pos[0]-.1,pos[1]+.1,pos[2]+.1)
+
+    _ri_dwn_frnt = (pos[0]+.1,pos[1]-.1,pos[2]-.1)
+    _le_dwn_frnt = (pos[0]-.1,pos[1]-.1,pos[2]-.1)
+    _ri_dwn_back = (pos[0]+.1,pos[1]-.1,pos[2]+.1)
+    _le_dwn_back = (pos[0]-.1,pos[1]-.1,pos[2]+.1)
+
+    #front back verts
+    return ((_le_up_frnt, _ri_up_frnt , _ri_dwn_frnt),
+            (_le_up_frnt, _ri_dwn_frnt, _le_dwn_frnt),
+            (_ri_up_back, _le_up_back , _le_dwn_back),
+            (_ri_up_back, _le_dwn_back, _ri_dwn_back),
+
+            (_ri_up_frnt, _ri_up_back , _ri_dwn_back),
+            (_ri_up_frnt, _ri_dwn_back, _ri_dwn_frnt),
+            (_le_up_frnt, _le_up_back , _le_dwn_back),
+            (_le_up_frnt, _le_dwn_back, _le_dwn_frnt),
+
+            (_le_up_back,  _ri_up_back,  _ri_up_frnt),
+            (_le_up_back,  _ri_up_frnt,  _le_up_frnt),
+            (_le_dwn_back, _ri_dwn_back, _ri_dwn_frnt),
+            (_le_dwn_back, _ri_dwn_frnt, _le_dwn_frnt))
+
+
+def box_w_quads(pos):
+    _ri_up_frnt = (pos[0] + .1, pos[1] + .1, pos[2] - .1)
+    _le_up_frnt = (pos[0] - .1, pos[1] + .1, pos[2] - .1)
+    _ri_up_back = (pos[0] + .1, pos[1] + .1, pos[2] + .1)
+    _le_up_back = (pos[0] - .1, pos[1] + .1, pos[2] + .1)
+
+    _ri_dwn_frnt = (pos[0] + .1, pos[1] - .1, pos[2] - .1)
+    _le_dwn_frnt = (pos[0] - .1, pos[1] - .1, pos[2] - .1)
+    _ri_dwn_back = (pos[0] + .1, pos[1] - .1, pos[2] + .1)
+    _le_dwn_back = (pos[0] - .1, pos[1] - .1, pos[2] + .1)
+
+    # front back verts
+    return ((_le_up_frnt, _ri_up_frnt, _ri_dwn_frnt, _le_dwn_frnt),
+            (_ri_up_back, _le_up_back, _le_dwn_back, _ri_dwn_back),
+
+            (_ri_up_frnt, _ri_up_back, _ri_dwn_back, _ri_dwn_frnt),
+            (_le_up_frnt, _le_up_back, _le_dwn_back, _le_dwn_frnt),
+
+            (_le_up_back , _ri_up_back , _ri_up_frnt , _le_up_frnt),
+            (_le_dwn_back, _ri_dwn_back, _ri_dwn_frnt, _le_dwn_frnt))
 
 
 def grid_test():
@@ -45,9 +94,11 @@ def grid_test():
     for x in range(-3,4):
         for y in range(-3,4):
             for z in range(-3,4):
-                l.extend(tri([x,y,z]))
+                if x == 0 or y == 0 or z == 0:
+                    continue
+                l.extend(box_w_quads((x,y,z)))
     for i in l:
-        if type(i) is not list:
+        if type(i) is not tuple:
             raise TypeError
     return l
 
@@ -58,16 +109,19 @@ def test():
         i=0
 
         print(len(grid_test()))
-        inter.camera_rot=[0,90,0]
-        inter.render(grid_test())
-        time.sleep(1)
-        t=0
-        while inter.render(grid_test()):
-            inter.camera_rot=[0,i*5+90,0]
+        inter.camera_rot=(0,90,0)
+        inter.render(grid_test(),cache=True)
+        t=-time.time()
+        avrg_time=0.02
+        while inter.render():
+            inter.camera_rot=(0,i/math.pi,0)
+            inter.camera_pos=(math.sin(i/180)*10,0,-math.cos(i/180)*10)
             # print(inter.camera_rot)
-            print(f"frame rate: {1 / (t + time.time()+1e-20)}")
-            t = -time.time()
             i += 1
+            lerp_val=0.99
+            avrg_time=(t+time.time())*(1-lerp_val)+avrg_time*lerp_val
+            if i%100==0:print(f"frame rate: {1 /(avrg_time+1e-20)}")
+            t = -time.time()
     except Exception as e:
         logging.getLogger().exception(e)
     unittest.main()
