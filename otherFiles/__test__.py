@@ -14,11 +14,11 @@ import unittest
 import cProfile
 
 def tri(pos):
-    vert_top=[pos[0],pos[1]+0.5,pos[2]]
-    vert_left = [pos[0]-0.1,pos[1],pos[2]-0.1]
-    vert_right = [pos[0]+0.1,pos[1],pos[2]-0.1]
-    vert_back = [pos[0],pos[1],pos[2]+0.3]
-    return [
+    vert_top=(pos[0],pos[1]+0.5,pos[2])
+    vert_left = (pos[0]-0.1,pos[1],pos[2]-0.1)
+    vert_right = (pos[0]+0.1,pos[1],pos[2]-0.1)
+    vert_back = (pos[0],pos[1],pos[2]+0.3)
+    return (
         vert_top,
         vert_left,
         vert_right,
@@ -27,16 +27,16 @@ def tri(pos):
         vert_back,
         vert_top,
         vert_back,
-        vert_left]
+        vert_left)
 
 def quad(pos):
-    return [
-        [pos[0]-.1,pos[1]-.1,pos[2]],
-        [pos[0]+.1,pos[1]-.1,pos[2]],
-        [pos[0]+.1,pos[1]+.1,pos[2]],
-        [pos[0]-.1,pos[1]-.1,pos[2]],
-        [pos[0]+.1,pos[1]+.1,pos[2]],
-        [pos[0]-.1,pos[1]+.1,pos[2]]]
+    return (
+        (pos[0]-.1,pos[1]-.1,pos[2]),
+        (pos[0]+.1,pos[1]-.1,pos[2]),
+        (pos[0]+.1,pos[1]+.1,pos[2]),
+        (pos[0]-.1,pos[1]-.1,pos[2]),
+        (pos[0]+.1,pos[1]+.1,pos[2]),
+        (pos[0]-.1,pos[1]+.1,pos[2]))
 
 
 
@@ -45,9 +45,9 @@ def grid_test():
     for x in range(-3,4):
         for y in range(-3,4):
             for z in range(-3,4):
-                l.extend(tri([x,y,z]))
+                l.extend(tri((x,y,z)))
     for i in l:
-        if type(i) is not list:
+        if type(i) is not tuple:
             raise TypeError
     return l
 
@@ -58,12 +58,12 @@ def test():
         i=0
 
         print(len(grid_test()))
-        inter.camera_rot=[0,90,0]
+        inter.camera_rot=(0,90,0)
         inter.render(grid_test())
         time.sleep(1)
         t=0
         while inter.render(grid_test()):
-            inter.camera_rot=[0,i*5+90,0]
+            inter.camera_rot=(0,i*5+90,0)
             # print(inter.camera_rot)
             print(f"frame rate: {1 / (t + time.time()+1e-20)}")
             t = -time.time()

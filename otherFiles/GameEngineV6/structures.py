@@ -177,15 +177,17 @@ import logging
 # endregion
 
 # region matrix
-EYE_MATRIX=[1,0,0,0,
+EYE_MATRIX=(1,0,0,0,
             0,1,0,0,
             0,0,1,0,
-            0,0,0,1]
-def m4x4_times_m4x4(first: list, second: list) -> list:
+            0,0,0,1)
+
+@functools.lru_cache
+def m4x4_times_m4x4(first: tuple, second: tuple) -> tuple:
     # as we only allow 4x4 matrices, every matrix multiplication is always possible
 
     # writing out the for loop to maybe get extra performance. pythons performance is pretty poor anyway
-    value_list = [
+    value_list = (
         first[0+4*0]*second[0+4*0]+
         first[0+4*1]*second[1+4*0]+
         first[0+4*2]*second[2+4*0]+
@@ -268,17 +270,17 @@ def m4x4_times_m4x4(first: list, second: list) -> list:
         first[3+4*1]*second[1+4*3]+
         first[3+4*2]*second[2+4*3]+
         first[3+4*3]*second[3+4*3],
-    ]
+    )
 
     return value_list
 
 
-
-def m4x4_times_v4(first: list, second: list) -> list:
+@functools.lru_cache
+def m4x4_times_v4(first: tuple, second: tuple) -> tuple:
     # as we only allow 4x4 matrices, every matrix multiplication is always possible
 
     # writing out the for loop to maybe get extra performance. pythons performance is pretty poor anyway
-    value_list = [
+    value_list = (
         first[0+4*0]*second[0]+
         first[0+4*1]*second[1]+
         first[0+4*2]*second[2]+
@@ -298,7 +300,7 @@ def m4x4_times_v4(first: list, second: list) -> list:
         first[3+4*1]*second[1]+
         first[3+4*2]*second[2]+
         first[3+4*3]*second[3],
-    ]
+    )
     return value_list
 
 # @dataclass

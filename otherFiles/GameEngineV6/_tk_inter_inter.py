@@ -30,13 +30,13 @@ class Interpeter:
         # print(tri.vert1)
         # print(tri.vert2)
         # print(tri.vert3)
-        rel_tri=[
-            [(tri[0][0]+ 1) * w / 2,
-                    (tri[0][1] + 1) * h / 2],
-            [(tri[1][0] + 1) * w / 2,
-                    (tri[1][1] + 1) * h / 2],
-            [(tri[2][0] + 1) * w / 2,
-                    (tri[2][1] + 1) * h / 2]]
+        rel_tri=(
+            ((tri[0][0]+ 1) * w / 2,
+                    (tri[0][1] + 1) * h / 2),
+            ((tri[1][0] + 1) * w / 2,
+                    (tri[1][1] + 1) * h / 2),
+            ((tri[2][0] + 1) * w / 2,
+                    (tri[2][1] + 1) * h / 2))
 
         # print(rel_tri.vert1)
         # print()
@@ -46,7 +46,7 @@ class Interpeter:
         new=[]
         for i in tris:
 
-            new.extend([i[0],self.height-i[1]])
+            new.extend((i[0],self.height-i[1]))
         return new
 
 

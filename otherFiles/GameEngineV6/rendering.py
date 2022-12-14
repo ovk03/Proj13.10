@@ -10,9 +10,9 @@ from .structures import *
 
 class CameraRender:
     buffer=None
-    camera_pos=[]
-    camera_rot=[]
-    def __init__(self,pos=[0]*3, rot=[0]*3):
+    camera_pos=()
+    camera_rot=()
+    def __init__(self,pos=(0,)*3, rot=(0,)*3):
         self.inter=Interpeter()
         self.camera_pos=pos
         self.camera_rot=rot
@@ -20,65 +20,93 @@ class CameraRender:
 
 
 
-    def camera_transform_matrix(self,point_to_transform: list):
+    def camera_transform_matrix(self,point_to_transform: tuple):
         # https://en.wikipedia.org/wiki/Rotation_matrix
         # we also need depth to decide what goes above what (z buffer) so we need 4x4 projection matrix
 
-        # python thinks Vector times Float is Float XD
-        camera_rot = [r*math.radians(1) for r in self.camera_rot]
-        # Translation order. It Really matters
-        # 1. (t Matrix) Position, so that camera is in 0,0,0
-        # 2. (x Matrix) Camera up down rotation
-        # 3. (y Matrix) Camera rotation around Up axis. Probably the most common rotation.
-        # 4. (z Matrix) Camera tilt. May or may not be ever used XD
-
-        # 1.
-        point_v4 = [point_to_transform[0] - self.camera_pos[0],
+        point_v4 = (point_to_transform[0] - self.camera_pos[0],
                            point_to_transform[1] - self.camera_pos[1],
                            point_to_transform[2] - self.camera_pos[2],
-                           1]
+                           1)
 
-        # 2. (x Matrix) Camera up down rotation
-        anglex = camera_rot[0]
+        # region old readable code (does same as current optimized aka unreadable code)
+        # # python thinks Vector times Float is Float XD
+        # # Translation order. It Really matters
+        # # 1. (t Matrix) Position, so that camera is in 0,0,0
+        # # 2. (x Matrix) Camera up down rotation
+        # # 3. (y Matrix) Camera rotation around Up axis. Probably the most common rotation.
+        # # 4. (z Matrix) Camera tilt. May or may not be ever used XD
+        #
+        # # 1.
+        #
+        # # 2. (x Matrix) Camera up down rotation
+        # anglex = self.camera_rot[0]*math.radians(1)
+        # sinx = math.sin(anglex)
+        # cosx = math.cos(anglex)
+        # x_rot_m4 = (1,0,0,0,
+        #             0,cosx,-sinx,0,
+        #             0,sinx,cosx,0,
+        #             0,0,0,1)
+        #
+        # # 3. (y Matrix) Camera rotation around Up axis. Probably the most common rotation.
+        # angley = self.camera_rot[1]*math.radians(1)
+        # siny = math.sin(angley)
+        # cosy = math.cos(angley)
+        # y_rot_m4 = (cosy,0,siny,0,
+        #             0,1,0,0,
+        #             -siny,0,cosy,0,
+        #             0,0,0,1)
+        #
+        # # 4. (z Matrix) Camera tilt. May or may not be ever used XD
+        # anglez = self.camera_rot[2]*math.radians(1)
+        # sinz = math.sin(anglez)
+        # cosz = math.cos(anglez)
+        # z_rot_m4 = (cosz,-sinz,0,0,
+        #             sinz,cosz,0,0,
+        #             0,0,1,0,
+        #             0,0,0,1)
+        #
+        # #
+        # #  print("\nrot: ",end="")
+        # #  print(camera_rot)
+        # # print(point_v4)
+        # point_v4 = m4x4_times_v4(x_rot_m4,point_v4)
+        # # print(point_v4)
+        # point_v4 = m4x4_times_v4(y_rot_m4,point_v4)
+        # # print(point_v4)
+        # point_v4 = m4x4_times_v4(z_rot_m4,point_v4)
+        # # print(point_v4)
+        # endregion
+
+
+        anglex = self.camera_rot[0]*math.radians(1)
         sinx = math.sin(anglex)
         cosx = math.cos(anglex)
-        x_rot_m4 = EYE_MATRIX.copy()
-        x_rot_m4[1+4*1] = x_rot_m4[2+4*2] = cosx
-        x_rot_m4[2+4*1] = -sinx
-        x_rot_m4[1+4*2] = sinx
-
-        # 3. (y Matrix) Camera rotation around Up axis. Probably the most common rotation.
-        angley = camera_rot[1]
+        angley = self.camera_rot[1]*math.radians(1)
         siny = math.sin(angley)
         cosy = math.cos(angley)
-        y_rot_m4 = EYE_MATRIX.copy()
-        y_rot_m4[0] = y_rot_m4[2+4*2] = cosy
-        y_rot_m4[2] = siny
-        y_rot_m4[4*2] = -siny
-
-        # 4. (z Matrix) Camera tilt. May or may not be ever used XD
-        anglez = camera_rot[2]
+        anglez = self.camera_rot[2]*math.radians(1)
         sinz = math.sin(anglez)
         cosz = math.cos(anglez)
-        z_rot_m4 = EYE_MATRIX.copy()
-        z_rot_m4[0] = z_rot_m4[1+4*1] = cosz
-        z_rot_m4[1] = -sinz
-        z_rot_m4[4*1] = sinz
+        rot_m4=(cosx*cosy,
+                cosx*siny*sinz-sinx*siny,
+                cosx*siny*cosz+sinx*sinz,0,
 
-        #
-        #  print("\nrot: ",end="")
-        #  print(camera_rot)
-        # print(point_v4)
-        point_v4 = m4x4_times_v4(x_rot_m4,point_v4)
-        # print(point_v4)
-        point_v4 = m4x4_times_v4(y_rot_m4,point_v4)
-        # print(point_v4)
-        point_v4 = m4x4_times_v4(z_rot_m4,point_v4)
-        # print(point_v4)
+                sinx*cosy,
+                sinx*siny*sinz+cosx*cosy,
+                sinx*siny*cosz-cosx*sinz,0,
 
-        return [point_v4[0] / point_v4[3],
+                -siny,
+                cosy*sinz,
+                siny*cosz,0,
+
+                0,0,0,1)
+
+        point_v4=m4x4_times_v4(rot_m4,point_v4)
+
+        return (point_v4[0] / point_v4[3],
                 point_v4[1] / point_v4[3],
-                point_v4[2] / point_v4[3]]
+                point_v4[2] / point_v4[3])
 
 
     def camera_project_matrix(self,point):
@@ -88,8 +116,7 @@ class CameraRender:
 
         # https://www.youtube.com/watch?v=8bQ5u14Z9OQ
 
-        point_v4 = point
-        point_v4.append(1)
+        point_v4 = (point[0],point[1],point[2],1)
 
         x_fov = 9/10
         y_fov = 16/10
@@ -98,11 +125,11 @@ class CameraRender:
         near = 1
         far = 1000
         # I really hope the formulas I found online are correct
-        proj = [
+        proj = (
              x_fov, 0, x_off, 0,
              0, y_fov, y_off, 0,
              0, 0, far / (far - near), 1,
-             0, 0, -near * far / (far - near), 0]
+             0, 0, -near * far / (far - near), 0)
 
         # proj = Matrix4x4 \
         #     (near / x_fov, 0, x_off, 0,
@@ -119,9 +146,9 @@ class CameraRender:
 
         point_v4 = m4x4_times_v4(proj,point_v4)
         try:
-            return [point_v4[0] / point_v4[3],
+            return (point_v4[0] / point_v4[3],
                            point_v4[1] / point_v4[3],
-                           point_v4[2] / point_v4[3]]
+                           point_v4[2] / point_v4[3])
         except ZeroDivisionError as e:
             logging.getLogger("render").warning(e)
             logging.getLogger("render").warning(f"{self.camera_rot}  ,  {self.camera_pos}")
@@ -132,13 +159,13 @@ class CameraRender:
         return list(filter(lambda t: t.normal * self.camera_rot > 0, triangles))
 
 
-    def basic_frustum_culling(self,triangle: list):
+    def basic_frustum_culling(self,triangle: tuple):
         if (0.0 < triangle[0][2]) and \
            (0.0 < triangle[1][2]) and \
            (0.0 < triangle[2][2]):
             return triangle
         else:
-            return []
+            return ()
 
     def frustum_culling(self,triangle: list):
 
@@ -152,7 +179,7 @@ class CameraRender:
             not (sign(triangle[1][1]) == sign(triangle[1][1]) == sign(triangle[1][1]))):
             return triangle
         else:
-            return []
+            return ()
 
     def render(self,buffer=None) -> bool:
         # print(self.camera_rot)
@@ -168,7 +195,7 @@ class CameraRender:
         step_buffer_second = []
         for i in range(0,len(step_buffer_first),3):
             step_buffer_second.extend(self.basic_frustum_culling(
-                [step_buffer_first[i],step_buffer_first[i+1],step_buffer_first[i+2]]))
+                (step_buffer_first[i],step_buffer_first[i+1],step_buffer_first[i+2])))
 
         step_buffer_first = []
         for t in step_buffer_second:
@@ -185,7 +212,7 @@ class proj_unit_test(unittest.TestCase):
 
         rend = CameraRender()
 
-        # tris = []
+        # tris = ()
         # tris.append([0.1, 0, 1, 0.1, 0, 10, 0.0, 0, 0])
         # tris.append([2, 1, 1, -1, 0, 10, 0.0, 2, 0])
         # tris.append([-3, 1, 1, -1, -2, 10, -2, -1, 0])
