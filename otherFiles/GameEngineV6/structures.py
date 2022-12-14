@@ -463,19 +463,37 @@ def dot(a, b) -> float:
     #     raise TypeError
 
 
-def cross(a, b):
+def cross(vectors:tuple):
     """Simple cross product of two Vector3"""
-
-    # guard clause for mismatch type
-    if type(a) != type(b) or type(b) != list:
-        raise TypeError
-
     # https://en.wikipedia.org/wiki/Cross_product
-    return [
-        a[1] * b[2] - a[2] * b[1],
-        a[2] * b[0] - a[0] * b[2],
-        a[0] * b[1] - a[1] * b[0]]
 
+    # return [a[1] * b[2] - a[2] * b[1],
+    #         a[2] * b[0] - a[0] * b[2],
+    #         a[0] * b[1] - a[1] * b[0]]
+
+    # I'm sorry but writing this messy code is the only way to make it optimized
+
+    return [
+        vectors[1] * vectors[2+3] - vectors[2] * vectors[1+3],
+        vectors[2] * vectors[0+3] - vectors[0] * vectors[2+3],
+        vectors[0] * vectors[1+3] - vectors[1] * vectors[0+3]]
+
+
+def tri_normal(vectors:tuple):
+    """Simple cross product of two Vector3 minus first vector"""
+    # https://en.wikipedia.org/wiki/Cross_product
+
+    # return [
+    #     (b[1]-a[1]) * (c[2]-a[2]) - (b[2]-a[2]) * (c[1]-a[1]),
+    #     (b[2]-a[2]) * (c[0]-a[0]) - (b[0]-a[0]) * (c[2]-a[2]),
+    #     (b[0]-a[0]) * (c[1]-a[1]) - (b[1]-a[1]) * (c[0]-a[0])]
+
+    # I'm sorry but writing this messy code is the only way to make it optimized
+
+    return [
+        (vectors[1+3]-vectors[1]) * (vectors[2+6]-vectors[2]) - (vectors[2+3]-vectors[2]) * (vectors[1+6]-vectors[1]),
+        (vectors[2+3]-vectors[2]) * (vectors[0+6]-vectors[0]) - (vectors[0+3]-vectors[0]) * (vectors[2+6]-vectors[2]),
+        (vectors[0+3]-vectors[0]) * (vectors[1+6]-vectors[1]) - (vectors[1+3]-vectors[1]) * (vectors[0+6]-vectors[0])]
 
 def rot(vector_to_rotate, *args):
     # first parse args in this case we need to do more work than in "dot", as we might have one or two vectors and float

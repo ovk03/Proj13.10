@@ -16,38 +16,48 @@ class Interpeter:
     is_running = True
     width=1920
     height=1080
+    polygons=[]
 
     def __init__(self):
         self.root = tkinter.Tk()
         self.root.geometry(f"{self.width}x{self.height}")
         self.canvas = tkinter.Canvas()
+        self.canvas=tkinter.Canvas(self.root,height=self.height,width=self.width)
+        self.canvas.pack()
+
+        self.polygons=[self.canvas.create_polygon((0, 0, 0, 0, 0, 0)) for i in range(10000)]
         pass
 
+    # region Dep
+    # deprecated
     def rel_to_pix(self,tri):
+        """deprecated due to performance"""
         w=self.width
         h=self.height
         # print(w,h)
         # print(tri.vert1)
         # print(tri.vert2)
         # print(tri.vert3)
-        rel_tri=(
-            ((tri[0][0]+ 1) * w / 2,
-                    (tri[0][1] + 1) * h / 2),
-            ((tri[1][0] + 1) * w / 2,
-                    (tri[1][1] + 1) * h / 2),
-            ((tri[2][0] + 1) * w / 2,
-                    (tri[2][1] + 1) * h / 2))
 
         # print(rel_tri.vert1)
         # print()
-        return rel_tri
+        return (((tri[0][0]+ 1) * w / 2,
+                    (tri[0][1] + 1) * h / 2),
+                ((tri[1][0] + 1) * w / 2,
+                    (tri[1][1] + 1) * h / 2),
+                ((tri[2][0] + 1) * w / 2,
+                    (tri[2][1] + 1) * h / 2))
 
-    def flip_y_array(self,tris):
-        new=[]
-        for i in tris:
+    # deprecated
+    def flip_y_pack(self,tris):
+        """deprecated due to performance"""
+        return (tris[0][0],self.height-tris[0][1],
+                tris[1][0],self.height-tris[1][1],
+                tris[2][0],self.height-tris[2][1])
+    # endregion
 
-            new.extend((i[0],self.height-i[1]))
-        return new
+    def get_width_and_height(self):
+        return (self.width,self.height)
 
 
     def draw(self, new_buffer: list):
@@ -61,18 +71,15 @@ class Interpeter:
         # TODO: just deleting everything will do for getting the engine to run for the first time
 
         try:
-            self.canvas.destroy()
+            self.root.winfo_exists()
         except Exception:
             return False
-        self.canvas=tkinter.Canvas(self.root,height=self.height,width=self.width)
         if(len(new_buffer)==0):
             print("no triangles in buffer")
 
-        for i in range(0,len(new_buffer),3):
-            tri = new_buffer[i:i+3]
-            tri = self.rel_to_pix(tri)
-            self.canvas.create_polygon(self.flip_y_array(tri))
-        self.canvas.pack()
+
+        for tri_and_poly in zip(new_buffer, self.polygons):
+            self.canvas.coords(tri_and_poly[1],self.flip_y_pack(self.rel_to_pix(tri_and_poly[0])))
         self.root.update()
         return True
 

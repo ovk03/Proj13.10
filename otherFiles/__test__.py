@@ -19,15 +19,15 @@ def tri(pos):
     vert_right = (pos[0]+0.1,pos[1],pos[2]-0.1)
     vert_back = (pos[0],pos[1],pos[2]+0.3)
     return (
-        vert_top,
+        (vert_top,
         vert_left,
+        vert_right),
+        (vert_top,
         vert_right,
-        vert_top,
-        vert_right,
+        vert_back),
+        (vert_top,
         vert_back,
-        vert_top,
-        vert_back,
-        vert_left)
+        vert_left))
 
 def quad(pos):
     return (
@@ -59,10 +59,10 @@ def test():
 
         print(len(grid_test()))
         inter.camera_rot=(0,90,0)
-        inter.render(grid_test())
+        inter.render(grid_test(),cache=True)
         t=0
-        while inter.render(grid_test()):
-            inter.camera_rot=(0,i*5+90,0)
+        while inter.render():
+            inter.camera_rot=(0,i+90,0)
             # print(inter.camera_rot)
             print(f"frame rate: {1 / (t + time.time()+1e-20)}")
             t = -time.time()
