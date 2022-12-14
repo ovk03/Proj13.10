@@ -181,7 +181,7 @@ EYE_MATRIX=(1,0,0,0,
             0,1,0,0,
             0,0,1,0,
             0,0,0,1)
-
+# #https://en.wikipedia.org/wiki/Matrix_multiplication
 @functools.lru_cache
 def m4x4_times_m4x4(first: tuple, second: tuple) -> tuple:
     # as we only allow 4x4 matrices, every matrix multiplication is always possible
@@ -274,7 +274,7 @@ def m4x4_times_m4x4(first: tuple, second: tuple) -> tuple:
 
     return value_list
 
-
+# https://mathinsight.org/matrix_vector_multiplication
 @functools.lru_cache
 def m4x4_times_v4(first: tuple, second: tuple) -> tuple:
     # as we only allow 4x4 matrices, every matrix multiplication is always possible
@@ -282,26 +282,86 @@ def m4x4_times_v4(first: tuple, second: tuple) -> tuple:
     # writing out the for loop to maybe get extra performance. pythons performance is pretty poor anyway
     return (
         first[0+4*0]*second[0]+
-        first[0+4*1]*second[1]+
-        first[0+4*2]*second[2]+
-        first[0+4*3]*second[3],
+        first[1+4*0]*second[1]+
+        first[2+4*0]*second[2]+
+        first[3+4*0]*second[3],
 
-        first[1+4*0]*second[0]+
+        first[0+4*1]*second[0]+
         first[1+4*1]*second[1]+
-        first[1+4*2]*second[2]+
-        first[1+4*3]*second[3],
+        first[2+4*1]*second[2]+
+        first[3+4*1]*second[3],
 
-        first[2+4*0]*second[0]+
-        first[2+4*1]*second[1]+
+        first[0+4*2]*second[0]+
+        first[1+4*2]*second[1]+
         first[2+4*2]*second[2]+
-        first[2+4*3]*second[3],
+        first[3+4*2]*second[3],
 
-        first[3+4*0]*second[0]+
-        first[3+4*1]*second[1]+
-        first[3+4*2]*second[2]+
+        first[0+4*3]*second[0]+
+        first[1+4*3]*second[1]+
+        first[2+4*3]*second[2]+
         first[3+4*3]*second[3],
     )
 
+
+# https://mathinsight.org/matrix_vector_multiplication
+@functools.lru_cache
+def optimal_m4x4_times_v4_camera(first: tuple, second: tuple) -> tuple:
+    """Basically same as above exept handpicked for 3d projection
+    This skips calculating elements, that are not in use in 3d rendering"""
+
+    return (
+        first[0+4*0]*second[0],
+        # first[1+4*0]*second[1]+
+        # first[2+4*0]*second[2]+
+        # first[3+4*0]*second[3],
+
+        # first[0+4*1]*second[0]+
+        first[1+4*1]*second[1],
+        # first[2+4*1]*second[2]+
+        # first[3+4*1]*second[3],
+
+        # first[0+4*2]*second[0]+
+        # first[1+4*2]*second[1]+
+        first[2+4*2]*second[2]+
+        first[3+4*2]*second[3],
+
+        # first[0+4*3]*second[0]+
+        # first[1+4*3]*second[1]+
+        first[2+4*3]*second[2]
+        # first[3+4*3]*second[3],
+    )
+
+# https://mathinsight.org/matrix_vector_multiplication
+@functools.lru_cache
+def optimal_m4x4_times_v4_transform(first: tuple, second: tuple) -> tuple:
+    """Basically same as above exept handpicked for 3d projection
+    This skips calculating elements, that are not in use in 3d rendering"""
+
+    return (
+        first[0+4*0]*second[0]+
+        first[1+4*0]*second[1]+
+        first[2+4*0]*second[2],
+        # in transform second[3] is always 1
+        # first[3+4*0],
+
+        first[0+4*1]*second[0]+
+        first[1+4*1]*second[1]+
+        first[2+4*1]*second[2],
+        # in transform second[3] is always 1
+        # first[3+4*1],
+
+        first[0+4*2]*second[0]+
+        first[1+4*2]*second[1]+
+        first[2+4*2]*second[2],
+        # in transform second[3] is always 1
+        # first[3+4*2],
+
+        # first[0+4*3]*second[0]+
+        # first[1+4*3]*second[1]+
+        # first[2+4*3]*second[2]+
+        # in transform this is always 1*second[3]
+        1,
+    )
 # @dataclass
 # class Matrix4x4:
 #     def __init__(self, *args, suppress=False, eye=False):
@@ -436,31 +496,25 @@ def m4x4_times_v4(first: tuple, second: tuple) -> tuple:
 
 # endregion
 
-class test(unittest.TestCase):
-    def test(self):
-        self.assertEqual(m4x4_times_v4(EYE_MATRIX,[0,0,0,0]),[0,0,0,0])
-        self.assertEqual(m4x4_times_v4(EYE_MATRIX,[1,1,1,1]),[1,1,1,1])
-        self.assertEqual(m4x4_times_v4(EYE_MATRIX,[4,2,3,1]),[4,2,3,1])
-
 # region math
-def dot(a, b) -> float:
-    """Dot product of any two vectors
-    (of same type)"""
-    return a*b
-    #
-    # # guard clause for mismatch type
-    # if type(a) != type(b):
-    #     raise TypeError
-    #
-    # # apparently this was retuning ints, so now they are cast into floats
-    # if type(a) == Vector2:
-    #     return float(_dot2(a, b))
-    # if type(a) == Vector3:
-    #     return float(_dot3(a, b))
-    # if type(a) == Vector4:
-    #     return float(_dot4(a, b))
-    # else:
-    #     raise TypeError
+# def dot(a, b) -> float:
+#     """Dot product of any two vectors
+#     (of same type)"""
+#     return a*b
+#     #
+#     # # guard clause for mismatch type
+#     # if type(a) != type(b):
+#     #     raise TypeError
+#     #
+#     # # apparently this was retuning ints, so now they are cast into floats
+#     # if type(a) == Vector2:
+#     #     return float(_dot2(a, b))
+#     # if type(a) == Vector3:
+#     #     return float(_dot3(a, b))
+#     # if type(a) == Vector4:
+#     #     return float(_dot4(a, b))
+#     # else:
+#     #     raise TypeError
 
 
 def cross(vectors:tuple):
@@ -472,7 +526,6 @@ def cross(vectors:tuple):
     #         a[0] * b[1] - a[1] * b[0]]
 
     # I'm sorry but writing this messy code is the only way to make it optimized
-
     return [
         vectors[1] * vectors[2+3] - vectors[2] * vectors[1+3],
         vectors[2] * vectors[0+3] - vectors[0] * vectors[2+3],
@@ -489,7 +542,6 @@ def tri_normal(vectors:tuple):
     #     (b[0]-a[0]) * (c[1]-a[1]) - (b[1]-a[1]) * (c[0]-a[0])]
 
     # I'm sorry but writing this messy code is the only way to make it optimized
-
     return [
         (vectors[1+3]-vectors[1]) * (vectors[2+6]-vectors[2]) - (vectors[2+3]-vectors[2]) * (vectors[1+6]-vectors[1]),
         (vectors[2+3]-vectors[2]) * (vectors[0+6]-vectors[0]) - (vectors[0+3]-vectors[0]) * (vectors[2+6]-vectors[2]),
@@ -529,6 +581,22 @@ def _rot3d(vector_to_rot, axis_vector, angle):
 # endregion
 
 # region uTest
+
+class vectors_unit_test(unittest.TestCase):
+    def test(self):
+        m4 = (1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+        v4 = (1, 2, 0, 1)
+        self.assertEqual(m4x4_times_v4(m4,v4),(1,1,1,1))
+        m4 = (1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+        self.assertEqual(m4x4_times_v4(m4,v4),(4,1,1,1))
+
+        self.assertEqual(m4x4_times_v4(EYE_MATRIX, (0, 0, 0, 0)), (0, 0, 0, 0))
+        self.assertEqual(m4x4_times_v4(EYE_MATRIX, (1, 1, 1, 1)), (1, 1, 1, 1))
+        self.assertEqual(m4x4_times_v4(EYE_MATRIX, (4, 2, 3, 1)), (4, 2, 3, 1))
+
+
+# these tests relied on older readable code, that was unoptimized
+# sadly I had to get rid of it
 # class vectors_unit_test(unittest.TestCase):
 #     def test(self):
 #         a2 = Vector2(1, 2)
@@ -558,11 +626,8 @@ def _rot3d(vector_to_rot, axis_vector, angle):
 #         test(a2, 90)
 #         test(b2, math.pi * 3, True)
 #         test(b2, 75)
-
-# endregion
-
-
-# region uTest
+#
+#
 # class matrices_unit_test(unittest.TestCase):
 #     def test(self):
 #         self.assertIs(type(Matrix4x4(suppress=True)), Matrix4x4)

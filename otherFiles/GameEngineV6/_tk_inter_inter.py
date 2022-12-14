@@ -21,11 +21,10 @@ class Interpeter:
     def __init__(self):
         self.root = tkinter.Tk()
         self.root.geometry(f"{self.width}x{self.height}")
-        self.canvas = tkinter.Canvas()
-        self.canvas=tkinter.Canvas(self.root,height=self.height,width=self.width)
+        self.canvas = tkinter.Canvas(self.root,height=self.height,width=self.width)
         self.canvas.pack()
 
-        self.polygons=[self.canvas.create_polygon((0, 0, 0, 0, 0, 0)) for i in range(10000)]
+        self.polygons=[self.canvas.create_polygon(0,0, 0,0, 0,0, 0,0) for i in range(10000)]
         pass
 
     # region Dep
@@ -77,9 +76,15 @@ class Interpeter:
         if(len(new_buffer)==0):
             print("no triangles in buffer")
 
-
+        # method 1
         for tri_and_poly in zip(new_buffer, self.polygons):
-            self.canvas.coords(tri_and_poly[1],self.flip_y_pack(self.rel_to_pix(tri_and_poly[0])))
+            self.canvas.coords(tri_and_poly[1],tri_and_poly[0])
+
+        # method 2
+        # self.canvas.delete("all")
+        # for tri in new_buffer:
+        #     self.canvas.create_polygon(tri)
+
         self.root.update()
         return True
 
