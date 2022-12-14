@@ -53,7 +53,7 @@ class CameraRender:
         cosy = math.cos(angley)
         y_rot_m4 = EYE_MATRIX.copy()
         y_rot_m4[0] = y_rot_m4[2+4*2] = cosy
-        y_rot_m4[2] = -siny
+        y_rot_m4[2] = siny
         y_rot_m4[4*2] = -siny
 
         # 4. (z Matrix) Camera tilt. May or may not be ever used XD
@@ -138,8 +138,6 @@ class CameraRender:
            (0.0 < triangle[2][2]):
             return triangle
         else:
-            print("not in view:")
-            print(triangle[0][2],triangle[1][2],triangle[2][2])
             return []
 
     def frustum_culling(self,triangle: list):
@@ -157,7 +155,7 @@ class CameraRender:
             return []
 
     def render(self,buffer=None) -> bool:
-        print(self.camera_rot)
+        # print(self.camera_rot)
         if type(buffer) is not list:
             buffer = self.buffer
         else:

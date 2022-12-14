@@ -181,7 +181,6 @@ EYE_MATRIX=[1,0,0,0,
             0,1,0,0,
             0,0,1,0,
             0,0,0,1]
-
 def m4x4_times_m4x4(first: list, second: list) -> list:
     # as we only allow 4x4 matrices, every matrix multiplication is always possible
 
@@ -272,6 +271,8 @@ def m4x4_times_m4x4(first: list, second: list) -> list:
     ]
 
     return value_list
+
+
 
 def m4x4_times_v4(first: list, second: list) -> list:
     # as we only allow 4x4 matrices, every matrix multiplication is always possible
