@@ -10,7 +10,6 @@ from ._tk_inter_inter import *
 from .structures import *
 import time
 
-
 class CameraRenderOptimized:
     
     buffer=None
@@ -59,8 +58,8 @@ class CameraRenderOptimized:
     
         x_fov = 9 / 10
         y_fov = 16 / 10
-        near = 1
-        far = 1000
+        near = .1
+        far = 10000
 
         c_pos_x,c_pos_y,c_pos_z = self.camera_pos
         
@@ -72,15 +71,16 @@ class CameraRenderOptimized:
                       sinx * siny * cosz - cosx * sinz,
                       -siny, cosy * sinz, cosy * cosz)
         proj_m4 = (
-            x_fov, 0, 0, 0,
-            0, y_fov, 0, 0,
+            x_fov*near, 0, 0, 0,
+            0, y_fov*near, 0, 0,
             0, 0, far / (far - near), 1,
             0, 0, -near * far / (far - near), 0)
     
         tcl_code = []
     
         # 3. calculations
-        for i,tri in enumerate(buffer):
+        i=0
+        for tri in buffer:
             point1_v4 = (
                 trans_m3x3[0] * (tri[0]-c_pos_x)+
                 trans_m3x3[1] * (tri[1]-c_pos_y)+
@@ -123,29 +123,34 @@ class CameraRenderOptimized:
                 trans_m3x3[8] * (tri[11]-c_pos_z),1)
 
             # TODO: clamp them in a way that makes sense perspective wise
-            if (0.0 > point1_v4[2]) or \
-                    (0.0 > point2_v4[2]) or \
-                    (0.0 > point2_v4[2]) or \
-                    (0.0 > point4_v4[2]):
+            if 0 > point1_v4[2] * point2_v4[2] or \
+                    0 > point3_v4[2] * point4_v4[2] or \
+                    0 > point1_v4[2] * point3_v4[2]:
                 continue
+
 
             point1_v4 = optimal_m4x4_times_v4_camera(proj_m4, point1_v4)
             point2_v4 = optimal_m4x4_times_v4_camera(proj_m4, point2_v4)
             point3_v4 = optimal_m4x4_times_v4_camera(proj_m4, point3_v4)
             point4_v4 = optimal_m4x4_times_v4_camera(proj_m4, point4_v4)
 
+
+
             # conversion to screen points
             # this used to be 3 different functions, but by merging them like this I saved alot of performance
             point1_v4 = (((point1_v4[0] / (point1_v4[3] + 1e-32) + 1) * screen_width / 2,
-                          screen_height - (point1_v4[1] / (point1_v4[3] + 1e-32) + 1) * screen_height / 2))
+                          (point1_v4[1] / (point1_v4[3]) + 1) * screen_height / 2))
             point2_v4 = (((point2_v4[0] / (point2_v4[3] + 1e-32) + 1) * screen_width / 2,
-                          screen_height - (point2_v4[1] / (point2_v4[3] + 1e-32) + 1) * screen_height / 2))
+                          (point2_v4[1] / (point2_v4[3]) + 1) * screen_height / 2))
             point3_v4 = (((point3_v4[0] / (point3_v4[3] + 1e-32) + 1) * screen_width / 2,
-                          screen_height - (point3_v4[1] / (point3_v4[3] + 1e-32) + 1) * screen_height / 2))
+                          (point3_v4[1] / (point3_v4[3]) + 1) * screen_height / 2))
             point4_v4 = (((point4_v4[0] / (point4_v4[3] + 1e-32) + 1) * screen_width / 2,
-                          screen_height - (point4_v4[1] / (point4_v4[3] + 1e-32) + 1) * screen_height / 2))
+                          (point4_v4[1] / (point4_v4[3]) + 1) * screen_height / 2))
 
+            i+=1
             tcl_code.append(f"{canvas} coords {i} {point1_v4[0]} {point1_v4[1]} {point2_v4[0]} {point2_v4[1]} {point3_v4[0]} {point3_v4[1]} {point4_v4[0]} {point4_v4[1]}\n")
+        size=len(tcl_code)
+        for i in range(size+1,4000):
+            tcl_code.append(f"{canvas} coords {i} 0 0 0 0 0 0 0 0\n")
 
-        boolean=self.inter.draw_code("".join(tcl_code))
-        return boolean
+        return self.inter.draw_code("".join(tcl_code))

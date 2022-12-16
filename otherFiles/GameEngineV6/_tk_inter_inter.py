@@ -26,9 +26,6 @@ class Interpeter:
     def __init__(self):
         self.stop_event=threading.Event()
         threading.Thread(target=self.mainloop,daemon=True).start()
-        self.code=""
-        self.t=-time.time()
-        self.avrg_time=0.02
 
     # region Dep
     # deprecated
@@ -67,7 +64,6 @@ class Interpeter:
         self.root.destroy()
 
     def buffer_event(self):
-        avrg_time=(self.t+time.time())*(1-.9)+self.avrg_time*.9
         if(len(self.code)>0):
             try:
                 self.root.eval(self.code)
@@ -75,17 +71,21 @@ class Interpeter:
                 print(self.code)
                 print(len(self.code))
                 quit()
-        self.root.after(10,self.buffer_event)
-
+        self.root.after(1,self.buffer_event)
+        print(self.t+time.perf_counter())
         print(f"frame rate: {1 / (self.avrg_time + 1e-20)}")
-        t = -time.time()
+        self.avrg_time=(self.t+time.perf_counter())*(1-.9)+self.avrg_time*.9
+        self.t = -time.perf_counter()
     def mainloop(self):
+        self.code=""
+        self.t=-time.perf_counter()
+        self.avrg_time=0.02
         self.root = tkinter.Tk()
         self.root.geometry(f"{self.width}x{self.height}")
         self.canvas = tkinter.Canvas(self.root,height=self.height,width=self.width)
         self.canvas.pack()
-        self.polygons=tuple([self.canvas.create_polygon(0,0, 0,0, 0,0, 0,0,) for i in range(10000)])
-        self.root.after(10,self.buffer_event)
+        self.polygons=tuple([self.canvas.create_polygon(0,0, 0,0, 0,0, 0,0,) for i in range(4000)])
+        self.root.after(1,self.buffer_event)
         self.root.protocol("WM_DELETE_WINDOW", self.destroy)
         self.root.mainloop()
 

@@ -13,6 +13,7 @@ import pstats
 import logging
 import unittest
 import cProfile
+from timeit import timeit
 
 def tri(pos):
     vert_top=(pos[0],pos[1]+0.5,pos[2])
@@ -155,19 +156,26 @@ def test():
         i=0
 
         print("count of polygons:")
-        print(len(grid_test_500()))
+        print(len(grid_test_10k()))
         inter.camera_rot=(0,90,0)
-        inter.render(grid_test_500(),cache=True)
+        # inter.render(grid_test_2k(),cache=True)
+        inter.render(obj_parse(open("untitled.obj").read()),cache=True)
+        avrg_time=0.02
+        t = -time.perf_counter()
         while inter.render():
             inter.camera_rot=(0,i/math.pi,0)
             inter.camera_pos=(math.sin(i/180)*10,0,-math.cos(i/180)*10)
             # print(inter.camera_rot)
             i += 5
             lerp_val=0.99
+            avrg_time=(t+time.time())*(1-lerp_val)+avrg_time*lerp_val
+            # print(f"frame rate: {1 / (avrg_time + 1e-20)}")
+            t = -time.perf_counter()
     except Exception as e:
         logging.getLogger().exception(e)
     unittest.main()
 
+from GameEngineV6._file_helper import *
 
 if __name__ == "__main__":
     pass
