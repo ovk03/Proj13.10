@@ -1,4 +1,5 @@
 """this file implements unittests"""
+import sys
 
 """Onni Kolkka 
 150832953 (student number)
@@ -88,15 +89,60 @@ def box_w_quads(pos):
             (_le_up_back , _ri_up_back , _ri_up_frnt , _le_up_frnt),
             (_le_dwn_back, _ri_dwn_back, _ri_dwn_frnt, _le_dwn_frnt))
 
+def box_w_quads_optim(pos):
+    _ri_up_frnt = (pos[0] + .1, pos[1] + .1, pos[2] - .1)
+    _le_up_frnt = (pos[0] - .1, pos[1] + .1, pos[2] - .1)
+    _ri_up_back = (pos[0] + .1, pos[1] + .1, pos[2] + .1)
+    _le_up_back = (pos[0] - .1, pos[1] + .1, pos[2] + .1)
 
-def grid_test():
+    _ri_dwn_frnt = (pos[0] + .1, pos[1] - .1, pos[2] - .1)
+    _le_dwn_frnt = (pos[0] - .1, pos[1] - .1, pos[2] - .1)
+    _ri_dwn_back = (pos[0] + .1, pos[1] - .1, pos[2] + .1)
+    _le_dwn_back = (pos[0] - .1, pos[1] - .1, pos[2] + .1)
+
+    # front back verts
+    return ((*_le_up_frnt, *_ri_up_frnt, *_ri_dwn_frnt, *_le_dwn_frnt),
+            (*_ri_up_back, *_le_up_back, *_le_dwn_back, *_ri_dwn_back),
+
+            (*_ri_up_frnt, *_ri_up_back, *_ri_dwn_back, *_ri_dwn_frnt),
+            (*_le_up_frnt, *_le_up_back, *_le_dwn_back, *_le_dwn_frnt),
+
+            (*_le_up_back , *_ri_up_back , *_ri_up_frnt , *_le_up_frnt),
+            (*_le_dwn_back, *_ri_dwn_back, *_ri_dwn_frnt, *_le_dwn_frnt))
+
+def grid_test_500():
+    l=[]
+    for x in range(-2,3):
+        for y in range(-1,2):
+            for z in range(-2,3):
+                if x == 0 or y == 0 or z == 0:
+                    pass
+                l.extend(box_w_quads_optim((x,y,z)))
+    for i in l:
+        if type(i) is not tuple:
+            raise TypeError
+    return l
+def grid_test_2k():
     l=[]
     for x in range(-3,4):
         for y in range(-3,4):
             for z in range(-3,4):
                 if x == 0 or y == 0 or z == 0:
-                    continue
-                l.extend(box_w_quads((x,y,z)))
+                    pass
+                l.extend(box_w_quads_optim((x,y,z)))
+    for i in l:
+        if type(i) is not tuple:
+            raise TypeError
+    return l
+
+def grid_test_10k():
+    l=[]
+    for x in range(-5,6):
+        for y in range(-6,7):
+            for z in range(-5,6):
+                if x == 0 or y == 0 or z == 0:
+                    pass
+                l.extend(box_w_quads_optim((x,y,z)))
     for i in l:
         if type(i) is not tuple:
             raise TypeError
@@ -105,23 +151,19 @@ def grid_test():
 
 def test():
     try:
-        inter=CameraRender()
+        inter=CameraRenderOptimized()
         i=0
 
-        print(len(grid_test()))
+        print("count of polygons:")
+        print(len(grid_test_500()))
         inter.camera_rot=(0,90,0)
-        inter.render(grid_test(),cache=True)
-        t=-time.time()
-        avrg_time=0.02
+        inter.render(grid_test_500(),cache=True)
         while inter.render():
             inter.camera_rot=(0,i/math.pi,0)
             inter.camera_pos=(math.sin(i/180)*10,0,-math.cos(i/180)*10)
             # print(inter.camera_rot)
-            i += 1
+            i += 5
             lerp_val=0.99
-            avrg_time=(t+time.time())*(1-lerp_val)+avrg_time*lerp_val
-            if i%100==0:print(f"frame rate: {1 /(avrg_time+1e-20)}")
-            t = -time.time()
     except Exception as e:
         logging.getLogger().exception(e)
     unittest.main()
@@ -129,8 +171,12 @@ def test():
 
 if __name__ == "__main__":
     pass
-cProfile.run("test()","testStats")
-p = pstats.Stats('testStats')
-p.strip_dirs().sort_stats(pstats.SortKey.TIME).print_stats()
+    try:
+        cProfile.run("test()","testStats")
+    except Exception as e:
+        logging.getLogger().exception(e)
+    finally:
+        p = pstats.Stats('testStats')
+        p.strip_dirs().sort_stats(pstats.SortKey.TIME).print_stats()
 
 

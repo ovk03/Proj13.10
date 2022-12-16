@@ -5,4 +5,4 @@ created 14.12.2022 0.14
 """
 
 from .game_engine import *
-from .structures import *
+from .__init__ import *
