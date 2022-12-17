@@ -82,8 +82,10 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
             if self._should_lock_mouse():
                 self.namespace.mouse_pos_x += self.root.winfo_pointerx()-self._last_cursor_x
                 self.namespace.mouse_pos_y += self.root.winfo_pointery()-self._last_cursor_y
+
                 ctypes.windll.user32.SetCursorPos(int( self.width / 2+self.root.winfo_x()),
                                                   int(self.height / 2+self.root.winfo_y()))
+
                 self._last_cursor_x = self.root.winfo_pointerx()
                 self._last_cursor_y = self.root.winfo_pointery()
             elif self.control_mouse_out_of_focus:
@@ -108,11 +110,12 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
                 code=self.namespace.code
                 try:
                     if len(code) > 0 and code[0:4] != "None":
+                        self.canvas.delete("3d")
                         self.root.eval(code)
                 except Exception as e:
                     logging.getLogger("Internals").debug(len(code))
                     logging.getLogger("Internals").exception(e)
-                    continue
+                    self.destroy()
 
                 # main update
                 self.root.dooneevent(_tkinter.ALL_EVENTS)
@@ -140,9 +143,9 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
         # FIXME possible to bug tkinter out of taskbar, if called WAY too much in sort period
         self._fullscreen = not self._fullscreen
         if self._fullscreen:
+            self.set_best_res()
             self.toggle_bar_on()
             self.root.attributes("-fullscreen", True)
-            self.set_best_res()
         else:
             self.set_debug_res()
 
@@ -246,6 +249,7 @@ class GameToTK(metaclass=EngineTypeSingleton):
     def draw_code(self, code: str):
         """ draw next frame """
         # guard clause
+
         if self.stop_event.is_set():
             self.is_working = False
             del self

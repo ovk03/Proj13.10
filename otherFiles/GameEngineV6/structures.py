@@ -181,6 +181,43 @@ EYE_MATRIX=(1,0,0,0,
             0,1,0,0,
             0,0,1,0,
             0,0,0,1)
+
+@functools.lru_cache
+def v3_minus(a,b):
+    return (a[0]-b[0],a[1]-b[1],a[2]-b[2])
+def v3_plus(a,b):
+    return (a[0]+b[0],a[1]+b[1],a[2]+b[2])
+
+@functools.lru_cache
+def reversed_rotation_matrix(rot,pos):
+    sinx = math.sin(rot[0] * math.radians(1))
+    cosx = math.cos(rot[0] * math.radians(1))
+    siny = math.sin(rot[1] * math.radians(1))
+    cosy = math.cos(rot[1] * math.radians(1))
+    sinz = math.sin(rot[2] * math.radians(1))
+    cosz = math.cos(rot[2] * math.radians(1))
+    trans_m3x3 = (cosx * cosy, sinx * cosy, -siny,
+                  cosx * siny * sinz - sinx * cosz,
+                  sinx * siny * sinz + cosx * cosz,
+                  cosy * sinz, cosx * siny * cosz + sinx * sinz,
+                  sinx * siny * cosz - cosx * sinz, cosy * cosz)
+
+    return optimal_m4x4_times_v4_transform(trans_m3x3,pos)
+@functools.lru_cache
+def rotation_matrix(rot,pos):
+    sinx = math.sin(rot[0] * math.radians(1))
+    cosx = math.cos(rot[0] * math.radians(1))
+    siny = math.sin(rot[1] * math.radians(1))
+    cosy = math.cos(rot[1] * math.radians(1))
+    sinz = math.sin(rot[2] * math.radians(1))
+    cosz = math.cos(rot[2] * math.radians(1))
+    trans_m3x3 = (cosx * cosy, cosx * siny * sinz - sinx * cosz,
+                  cosx * siny * cosz + sinx * sinz,
+                  sinx * cosy, sinx * siny * sinz + cosx * cosz,
+                  sinx * siny * cosz - cosx * sinz,
+                  -siny, cosy * sinz, cosy * cosz)
+    return optimal_m4x4_times_v4_transform(trans_m3x3,pos)
+
 # #https://en.wikipedia.org/wiki/Matrix_multiplication
 @functools.lru_cache
 def m4x4_times_m4x4(first: tuple, second: tuple) -> tuple:
@@ -336,31 +373,15 @@ def optimal_m4x4_times_v4_transform(first: tuple, second: tuple) -> tuple:
     """Basically same as above exept handpicked for 3d projection
     This skips calculating elements, that are not in use in 3d rendering"""
 
-    return (
-        first[0+4*0]*second[0]+
-        first[1+4*0]*second[1]+
-        first[2+4*0]*second[2],
-        # in transform second[3] is always 1
-        # first[3+4*0],
-
-        first[0+4*1]*second[0]+
-        first[1+4*1]*second[1]+
-        first[2+4*1]*second[2],
-        # in transform second[3] is always 1
-        # first[3+4*1],
-
-        first[0+4*2]*second[0]+
-        first[1+4*2]*second[1]+
-        first[2+4*2]*second[2],
-        # in transform second[3] is always 1
-        # first[3+4*2],
-
-        # first[0+4*3]*second[0]+
-        # first[1+4*3]*second[1]+
-        # first[2+4*3]*second[2]+
-        # in transform this is always 1*second[3]
-        1,
-    )
+    return (first[0]*second[0]+
+            first[1]*second[1]+
+            first[2]*second[2],
+            first[3]*second[0]+
+            first[4]*second[1]+
+            first[5]*second[2],
+            first[6]*second[0]+
+            first[7]*second[1]+
+            first[8]*second[2])
 # @dataclass
 # class Matrix4x4:
 #     def __init__(self, *args, suppress=False, eye=False):

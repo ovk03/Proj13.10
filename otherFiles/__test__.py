@@ -2,8 +2,9 @@
 import pathlib
 import sys
 from GameEngineV6 import *
-from GameEngineV6 import _rendering
-from GameEngineV6 import _tk_inter_inter
+from GameEngineV6 import structures
+from GameEngineV6._rendering import *
+from GameEngineV6._tk_inter_inter import *
 import time
 import math
 import pstats
@@ -156,26 +157,32 @@ def grid_test_10k():
 
 def test():
     try:
-        inter=_rendering.CameraRenderOptimized()
+        cam=lambda: CameraRenderOptimized()
         i=0
 
         print("count of polygons:")
         print(len(grid_test_10k()))
-        inter.camera_rot=(0,90,0)
+        cam().camera_rot=(0,90,0)
         # inter.render(grid_test_2k(),cache=True)
-        inter.render(obj_parse(open(pathlib.Path(__file__).absolute().parent.joinpath("untitled.obj")).read()),cache=True)
+        cam().render(obj_parse(pathlib.Path(__file__).absolute().parent.joinpath("untitled.obj")),cache=True)
         avrg_time=0.02
         t = -time.perf_counter()
-        while inter.render():
-            inter.camera_rot=(0,i/math.pi*3+_tk_inter_inter.GameToTK().namespace.mouse_pos_x,0)
-            inter.camera_pos=(math.sin(i/180*3)*6,0,-math.cos(i/180*3)*8)
+        lerp_val=0.99
+        last_y=GameToTK().namespace.mouse_pos_y
+        last_x=GameToTK().namespace.mouse_pos_x
+        cam().camera_pos=(0,2.5,-5)
+        while cam().render():
+            i += (t+time.perf_counter())*20
+            avrg_time=(t+time.perf_counter())*(1-lerp_val)+avrg_time*lerp_val
+            t = -time.perf_counter()
+            cam().camera_rot=(0,(GameToTK().namespace.mouse_pos_x-last_x)/10,0)
+
+            cam().camera_pos=v3_plus(cam().camera_pos,structures.reversed_rotation_matrix(cam().camera_rot,(0,0,-(GameToTK().namespace.mouse_pos_y-last_y)/100)))
+
+            last_y=GameToTK().namespace.mouse_pos_y
             # inter.camera_pos=(0,0,-15)
             # print(inter.camera_rot)
-            i += 5
-            lerp_val=0.99
-            avrg_time=(t+time.time())*(1-lerp_val)+avrg_time*lerp_val
             # print(f"frame rate: {1 / (avrg_time + 1e-20)}")
-            t = -time.perf_counter()
     except Exception as e:
         logging.getLogger().exception(e)
     unittest.main()
@@ -185,12 +192,14 @@ from GameEngineV6._file_helper import *
 if __name__ == "__main__":
     try:
         cProfile.run("test()","testStats")
-    except Exception as e:
-        logging.getLogger().exception(e)
-    finally:
         p = pstats.Stats('testStats')
         print("\33[94m")
         p.strip_dirs().sort_stats(pstats.SortKey.TIME).print_stats(25)
         print("\33[0m\33[92m\33[7m\33[1m（ ^_^）!!!EVERYTHIN WORKED!!! ヽ(´▽`)/\33[0m")
+    except Exception as e:
+        logging.getLogger().exception(e)
+        p = pstats.Stats('testStats')
+        print("\33[94m")
+        p.strip_dirs().sort_stats(pstats.SortKey.TIME).print_stats(25)
 
 

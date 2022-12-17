@@ -11,6 +11,8 @@ from .structures import *
 from .__main__ import EngineTypeSingleton
 import time
 
+_USE_POLYGON_POOLING = False
+
 class CameraRenderOptimized(metaclass=EngineTypeSingleton):
     
     buffer=None
@@ -60,8 +62,8 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
     
         x_fov = 9 / 10
         y_fov = 16 / 10
-        near = 0.1
-        far = 1000
+        near = 0.01
+        far = 100
         fov_near_x=-x_fov
         fov_near_y=-y_fov
         far_near_far=far/(far-near)
@@ -81,23 +83,13 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
             0, 0, far / (far - near), -near * far / (far - near),
             0, 0, 1, 0)
 
-
         tcl_code = []
-    
+
+
         # 3. calculations
         i=0
         for tri in buffer:
             point1_v4 = (
-                trans_m3x3[0] * (tri[0]-c_pos_x)+
-                trans_m3x3[1] * (tri[1]-c_pos_y)+
-                trans_m3x3[2] * (tri[2]-c_pos_z),
-                trans_m3x3[3] * (tri[0]-c_pos_x)+
-                trans_m3x3[4] * (tri[1]-c_pos_y)+
-                trans_m3x3[5] * (tri[2]-c_pos_z),
-                trans_m3x3[6] * (tri[0]-c_pos_x)+
-                trans_m3x3[7] * (tri[1]-c_pos_y)+
-                trans_m3x3[8] * (tri[2]-c_pos_z))
-            point2_v4 = (
                 trans_m3x3[0] * (tri[3]-c_pos_x)+
                 trans_m3x3[1] * (tri[4]-c_pos_y)+
                 trans_m3x3[2] * (tri[5]-c_pos_z),
@@ -107,7 +99,7 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
                 trans_m3x3[6] * (tri[3]-c_pos_x)+
                 trans_m3x3[7] * (tri[4]-c_pos_y)+
                 trans_m3x3[8] * (tri[5]-c_pos_z))
-            point3_v4 = (
+            point2_v4 = (
                 trans_m3x3[0] * (tri[6]-c_pos_x)+
                 trans_m3x3[1] * (tri[7]-c_pos_y)+
                 trans_m3x3[2] * (tri[8]-c_pos_z),
@@ -117,7 +109,7 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
                 trans_m3x3[6] * (tri[6]-c_pos_x)+
                 trans_m3x3[7] * (tri[7]-c_pos_y)+
                 trans_m3x3[8] * (tri[8]-c_pos_z))
-            point4_v4 = (
+            point3_v4 = (
                 trans_m3x3[0] * (tri[9]-c_pos_x)+
                 trans_m3x3[1] * (tri[10]-c_pos_y)+
                 trans_m3x3[2] * (tri[11]-c_pos_z),
@@ -127,6 +119,22 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
                 trans_m3x3[6] * (tri[9]-c_pos_x)+
                 trans_m3x3[7] * (tri[10]-c_pos_y)+
                 trans_m3x3[8] * (tri[11]-c_pos_z))
+            point4_v4 = (
+                trans_m3x3[0] * (tri[12]-c_pos_x)+
+                trans_m3x3[1] * (tri[13]-c_pos_y)+
+                trans_m3x3[2] * (tri[14]-c_pos_z),
+                trans_m3x3[3] * (tri[12]-c_pos_x)+
+                trans_m3x3[4] * (tri[13]-c_pos_y)+
+                trans_m3x3[5] * (tri[14]-c_pos_z),
+                trans_m3x3[6] * (tri[12]-c_pos_x)+
+                trans_m3x3[7] * (tri[13]-c_pos_y)+
+                trans_m3x3[8] * (tri[14]-c_pos_z))
+
+            z = ((point1_v4[0]*point1_v4[0]+point1_v4[2]*point1_v4[2]+point1_v4[1]*point1_v4[1])*
+                 (point2_v4[0]*point2_v4[0]+point2_v4[2]*point2_v4[2]+point2_v4[1]*point2_v4[1])*
+                 (point3_v4[0]*point3_v4[0]+point3_v4[2]*point3_v4[2]+point3_v4[1]*point3_v4[1])*
+                 (point4_v4[0]*point4_v4[0]+point4_v4[2]*point4_v4[2]+point4_v4[1]*point4_v4[1]))
+
 
             # projection transform
             point1_v4 = (
@@ -180,6 +188,7 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
 
             # TODO: cull Z  in a way that makes sense perspective wise
 
+
             # conversion to screen points
             # this used to be 3 different functions, but by merging them like this I saved alot of performance
             point1_v4 = (((point1_v4[0] / (abs(point1_v4[3]) + 2.2250738585072014e-308) + 1) * screen_width / 2,
@@ -191,10 +200,23 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
             point4_v4 = (((point4_v4[0] / (abs(point4_v4[3]) + 2.2250738585072014e-308) + 1) * screen_width / 2,
                           (point4_v4[1] / (abs(point4_v4[3]) + 2.2250738585072014e-308) + 1) * screen_height / 2))
 
+            a=int(z/100000)
 
             i+=1
-            tcl_code.append(f"{canvas} coords {i} {point1_v4[0]} {point1_v4[1]} {point2_v4[0]} {point2_v4[1]} {point3_v4[0]} {point3_v4[1]} {point4_v4[0]} {point4_v4[1]}\n")
+            if _USE_POLYGON_POOLING:
+                tcl_code.append((z,f"{canvas} coords {i} {point1_v4[0]} {point1_v4[1]} {point2_v4[0]} {point2_v4[1]} {point3_v4[0]} {point3_v4[1]} {point4_v4[0]} {point4_v4[1]}\n"
+                                f"{canvas} itemconfigure {i} -fill #{tri[0]:02x}{tri[1]:02x}{tri[2]:002x}\n"))
+            else:
+                tcl_code.append((z,f"{canvas} create poly {point1_v4[0]} {point1_v4[1]} {point2_v4[0]} {point2_v4[1]} "
+                                   f"{point3_v4[0]} {point3_v4[1]} {point4_v4[0]} {point4_v4[1]} -tag 3d "
+                                   f"-fill #{tri[0]:02x}{tri[1]:02x}{tri[2]:02x}\n"))
         size=len(tcl_code)
-        for i in range(size+1,POLYGON_COUNT):
-            tcl_code.append(f"{canvas} coords {i} 0 0 0 0 0 0 0 0\n")
+        tcl_code=sorted(tcl_code,reverse=True)
+        tcl_code=[string for _, string in tcl_code]
+
+        if _USE_POLYGON_POOLING:
+            for i in range(size+1,POLYGON_COUNT):
+                tcl_code.append(f"{canvas} coords {i} 0 0 0 0 0 0 0 0\n"
+                                f"{canvas} itemconfigure  {i} -fill #000000\n")
+
         return GameToTK().draw_code("".join(tcl_code))
