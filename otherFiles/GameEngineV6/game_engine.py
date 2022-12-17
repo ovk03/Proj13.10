@@ -6,7 +6,6 @@ created 10.12.2022 14.54
 """
 # replaced with more optimized submodule
 # from .rendering import *
-from ._rendering import *
 
 import unittest
 import functools

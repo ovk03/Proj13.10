@@ -8,6 +8,7 @@ created 11.12.2022 20.53
 """
 
 from GameEngineV6 import *
+from GameEngineV6 import _rendering
 import time
 import math
 import pstats
@@ -154,14 +155,14 @@ def grid_test_10k():
 
 def test():
     try:
-        inter=CameraRenderOptimized()
+        inter=_rendering.CameraRenderOptimized()
         i=0
 
         print("count of polygons:")
         print(len(grid_test_10k()))
         inter.camera_rot=(0,90,0)
         # inter.render(grid_test_2k(),cache=True)
-        inter.render(obj_parse(open(pathlib.Path().absolute().parent.joinpath("untitled.obj")).read()),cache=True)
+        inter.render(obj_parse(open(pathlib.Path(__file__).absolute().parent.joinpath("untitled.obj")).read()),cache=True)
         avrg_time=0.02
         t = -time.perf_counter()
         while inter.render():

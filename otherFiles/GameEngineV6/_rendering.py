@@ -10,10 +10,11 @@ from ._tk_inter_inter import *
 from .structures import *
 import time
 
-class CameraRenderOptimized:
+class CameraRenderOptimized(metaclass=EngineType):
     
     buffer=None
-    
+    inter=None
+
     camera_pos = ()
     camera_rot = ()
     sinx = 0.0
@@ -23,10 +24,12 @@ class CameraRenderOptimized:
     sinz = 0.0
     cosz = 0.0
 
-    def __init__(self, pos=(0,) * 3, rot=(0,) * 3):
+
+    def __init__(self, pos=(0,)*3, rot=(0,)*3):
         self.inter = GameToTK()
         self.camera_pos = pos
         self.camera_rot = rot
+
 
 
     def render(self, buffer=None, cache: bool = False) -> bool:

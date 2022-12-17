@@ -1,26 +1,23 @@
 """manages interactions with tkinter"""
+
+import tkinter
+import _tkinter
+import logging
+import multiprocessing
+import time
 import ctypes
+from .__main__ import EngineType
 
 """Onni Kolkka 
 150832953 (student number)
 created 10.12.2022 15.06
 """
 
-import tkinter
-import _tkinter
-import cProfile
-import logging
-import multiprocessing
-import time
-import ctypes
-from __main__ import is_windows
-from platform import platform
-from ctypes import *
 
 # Dictionary containing the most common 16:9 resolutions, These correspond to specific files in data.
 COMMON_SCREEN_RESOLUTIONS= {640:360,1600:900,1920:1080,2560:1440}
 
-class TKMultiProcess:
+class TKMultiProcess(metaclass=EngineType):
 
     def __init__(self,namespace,events,size):
 
@@ -74,7 +71,7 @@ class TKMultiProcess:
 
             self.namespace.mouse_pos_x += self.root.winfo_pointerx()-self._last_cursor_x
             self.namespace.mouse_pos_y += self.root.winfo_pointery()-self._last_cursor_y
-            if self._cursor_lock and is_windows():
+            if self._cursor_lock and self.is_windows:
                 ctypes.windll.user32.SetCursorPos(int( self.width / 2+self.root.winfo_x()), int(self.height / 2+self.root.winfo_y()))
             self._last_cursor_x = self.root.winfo_pointerx()
             self._last_cursor_y = self.root.winfo_pointery()
@@ -115,9 +112,12 @@ class TKMultiProcess:
     def toggle_fullscreen(self, *_):
         self._fullscreen = not self._fullscreen
         if self._fullscreen:
+            self.toggle_bar_on()
             self.root.attributes("-fullscreen",True)
             self._realign_elems(self.root.winfo_screenwidth(),self.root.winfo_screenheight())
         else:
+            if(self._cursor_lock):
+                self.toggle_bar_off()
             self.root.attributes("-fullscreen",False)
             self._realign_elems(self.root.winfo_width(),self.root.winfo_height())
 
@@ -185,7 +185,7 @@ class TKMultiProcess:
         self.stop_event.set()
         self.root.destroy()
 
-class GameToTK:
+class GameToTK(metaclass=EngineType):
 
     width=2560/2
     height=1440/2
