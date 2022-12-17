@@ -28,7 +28,7 @@ class CameraRender:
     tkinter_thread = None
 
     def __init__(self, pos=(0,) * 3, rot=(0,) * 3):
-        self.inter = Interpeter()
+        self.inter = GameToTK()
         self.camera_pos = pos
         self.camera_rot = rot
     # region deprecated

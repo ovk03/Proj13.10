@@ -308,27 +308,26 @@ def m4x4_times_v4(first: tuple, second: tuple) -> tuple:
 def optimal_m4x4_times_v4_camera(first: tuple, second: tuple) -> tuple:
     """Basically same as above exept handpicked for 3d projection
     This skips calculating elements, that are not in use in 3d rendering"""
-
     return (
-        first[0+4*0]*second[0],
-        # first[1+4*0]*second[1]+
-        # first[2+4*0]*second[2]+
-        # first[3+4*0]*second[3],
+        first[0+4*0]*second[0]+
+        first[1+4*0]*second[1]+
+        first[2+4*0]*second[2]+
+        first[3+4*0]*1,
 
-        # first[0+4*1]*second[0]+
-        first[1+4*1]*second[1],
-        # first[2+4*1]*second[2]+
-        # first[3+4*1]*second[3],
+        first[0+4*1]*second[0]+
+        first[1+4*1]*second[1]+
+        first[2+4*1]*second[2]+
+        first[3+4*1]*1,
 
-        # first[0+4*2]*second[0]+
-        # first[1+4*2]*second[1]+
+        first[0+4*2]*second[0]+
+        first[1+4*2]*second[1]+
         first[2+4*2]*second[2]+
-        first[3+4*2]*second[3],
+        first[3+4*2]*1,
 
-        # first[0+4*3]*second[0]+
-        # first[1+4*3]*second[1]+
-        first[2+4*3]*second[2]
-        # first[3+4*3]*second[3],
+        first[0+4*3]*second[0]+
+        first[1+4*3]*second[1]+
+        first[2+4*3]*second[2]+
+        first[3+4*3]*1,
     )
 
 # https://mathinsight.org/matrix_vector_multiplication

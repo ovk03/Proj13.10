@@ -1,4 +1,5 @@
 """this file implements unittests"""
+import pathlib
 import sys
 
 """Onni Kolkka 
@@ -10,6 +11,7 @@ from GameEngineV6 import *
 import time
 import math
 import pstats
+import pathlib
 import logging
 import unittest
 import cProfile
@@ -159,12 +161,13 @@ def test():
         print(len(grid_test_10k()))
         inter.camera_rot=(0,90,0)
         # inter.render(grid_test_2k(),cache=True)
-        inter.render(obj_parse(open("untitled.obj").read()),cache=True)
+        inter.render(obj_parse(open(pathlib.Path().absolute().parent.joinpath("untitled.obj")).read()),cache=True)
         avrg_time=0.02
         t = -time.perf_counter()
         while inter.render():
-            inter.camera_rot=(0,i/math.pi,0)
-            inter.camera_pos=(math.sin(i/180)*10,0,-math.cos(i/180)*10)
+            inter.camera_rot=(0,i/math.pi*3,0)
+            inter.camera_pos=(math.sin(i/180*3)*6,0,-math.cos(i/180*3)*8)
+            # inter.camera_pos=(0,0,-15)
             # print(inter.camera_rot)
             i += 5
             lerp_val=0.99
@@ -178,7 +181,6 @@ def test():
 from GameEngineV6._file_helper import *
 
 if __name__ == "__main__":
-    pass
     try:
         cProfile.run("test()","testStats")
     except Exception as e:

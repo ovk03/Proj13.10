@@ -24,7 +24,7 @@ class CameraRenderOptimized:
     cosz = 0.0
 
     def __init__(self, pos=(0,) * 3, rot=(0,) * 3):
-        self.inter = Interpeter()
+        self.inter = GameToTK()
         self.camera_pos = pos
         self.camera_rot = rot
 
@@ -58,12 +58,15 @@ class CameraRenderOptimized:
     
         x_fov = 9 / 10
         y_fov = 16 / 10
-        near = .1
-        far = 10000
+        near = 0.1
+        far = 1000
+        fov_near_x=-x_fov
+        fov_near_y=-y_fov
+        far_near_far=far/(far-near)
 
         c_pos_x,c_pos_y,c_pos_z = self.camera_pos
         
-        screen_width, screen_height, canvas  = self.inter.get_data_for_rend()
+        screen_width, screen_height, canvas = self.inter.get_data_for_rend()
     
         trans_m3x3 = (cosx * cosy, cosx * siny * sinz - sinx * cosz,
                       cosx * siny * cosz + sinx * sinz,
@@ -71,11 +74,12 @@ class CameraRenderOptimized:
                       sinx * siny * cosz - cosx * sinz,
                       -siny, cosy * sinz, cosy * cosz)
         proj_m4 = (
-            x_fov*near, 0, 0, 0,
-            0, y_fov*near, 0, 0,
-            0, 0, far / (far - near), 1,
-            0, 0, -near * far / (far - near), 0)
-    
+            x_fov, 0, 0, 0,
+            0, y_fov, 0, 0,
+            0, 0, far / (far - near), -near * far / (far - near),
+            0, 0, 1, 0)
+
+
         tcl_code = []
     
         # 3. calculations
@@ -90,7 +94,7 @@ class CameraRenderOptimized:
                 trans_m3x3[5] * (tri[2]-c_pos_z),
                 trans_m3x3[6] * (tri[0]-c_pos_x)+
                 trans_m3x3[7] * (tri[1]-c_pos_y)+
-                trans_m3x3[8] * (tri[2]-c_pos_z),1)
+                trans_m3x3[8] * (tri[2]-c_pos_z))
             point2_v4 = (
                 trans_m3x3[0] * (tri[3]-c_pos_x)+
                 trans_m3x3[1] * (tri[4]-c_pos_y)+
@@ -100,7 +104,7 @@ class CameraRenderOptimized:
                 trans_m3x3[5] * (tri[5]-c_pos_z),
                 trans_m3x3[6] * (tri[3]-c_pos_x)+
                 trans_m3x3[7] * (tri[4]-c_pos_y)+
-                trans_m3x3[8] * (tri[5]-c_pos_z),1)
+                trans_m3x3[8] * (tri[5]-c_pos_z))
             point3_v4 = (
                 trans_m3x3[0] * (tri[6]-c_pos_x)+
                 trans_m3x3[1] * (tri[7]-c_pos_y)+
@@ -110,7 +114,7 @@ class CameraRenderOptimized:
                 trans_m3x3[5] * (tri[8]-c_pos_z),
                 trans_m3x3[6] * (tri[6]-c_pos_x)+
                 trans_m3x3[7] * (tri[7]-c_pos_y)+
-                trans_m3x3[8] * (tri[8]-c_pos_z),1)
+                trans_m3x3[8] * (tri[8]-c_pos_z))
             point4_v4 = (
                 trans_m3x3[0] * (tri[9]-c_pos_x)+
                 trans_m3x3[1] * (tri[10]-c_pos_y)+
@@ -120,37 +124,75 @@ class CameraRenderOptimized:
                 trans_m3x3[5] * (tri[11]-c_pos_z),
                 trans_m3x3[6] * (tri[9]-c_pos_x)+
                 trans_m3x3[7] * (tri[10]-c_pos_y)+
-                trans_m3x3[8] * (tri[11]-c_pos_z),1)
+                trans_m3x3[8] * (tri[11]-c_pos_z))
 
-            # TODO: clamp them in a way that makes sense perspective wise
-            if 0 > point1_v4[2] * point2_v4[2] or \
-                    0 > point3_v4[2] * point4_v4[2] or \
-                    0 > point1_v4[2] * point3_v4[2]:
+            # projection transform
+            point1_v4 = (
+                fov_near_x * point1_v4[0],
+                fov_near_y * point1_v4[1],
+                point1_v4[2]-near,
+                point1_v4[2]+far_near_far)
+            point2_v4 = (
+                fov_near_x * point2_v4[0],
+                fov_near_y * point2_v4[1],
+                point2_v4[2]-near,
+                point2_v4[2]+far_near_far)
+            point3_v4 = (
+                fov_near_x * point3_v4[0],
+                fov_near_y * point3_v4[1],
+                point3_v4[2]-near,
+                point3_v4[2]+far_near_far)
+            point4_v4 = (
+                fov_near_x * point4_v4[0],
+                fov_near_y * point4_v4[1],
+                point4_v4[2]-near,
+                point4_v4[2]+far_near_far)
+
+            if (point1_v4[0] > point1_v4[3]) and \
+                    (point2_v4[0] > point2_v4[3]) and \
+                    (point3_v4[0] > point3_v4[3]) and \
+                    (point4_v4[0] > point4_v4[3]):
+                continue
+            if (point1_v4[0] < -point1_v4[3]) and \
+                    (point2_v4[0] < -point2_v4[3]) and \
+                    (point3_v4[0] < -point3_v4[3]) and \
+                    (point4_v4[0] < -point4_v4[3]):
+                continue
+            if (point1_v4[1] > point1_v4[3]) and \
+                    (point2_v4[1] > point2_v4[3]) and \
+                    (point3_v4[1] > point3_v4[3]) and \
+                    (point4_v4[1] > point4_v4[3]):
+                continue
+            if (point1_v4[1] < -point1_v4[3]) and \
+                    (point2_v4[1] < -point2_v4[3]) and \
+                    (point3_v4[1] < -point3_v4[3]) and \
+                    (point4_v4[1] < -point4_v4[3]):
                 continue
 
 
-            point1_v4 = optimal_m4x4_times_v4_camera(proj_m4, point1_v4)
-            point2_v4 = optimal_m4x4_times_v4_camera(proj_m4, point2_v4)
-            point3_v4 = optimal_m4x4_times_v4_camera(proj_m4, point3_v4)
-            point4_v4 = optimal_m4x4_times_v4_camera(proj_m4, point4_v4)
+            if (0.0 > point1_v4[2]) and \
+                    (0.0 > point2_v4[2]) and \
+                    (0.0 > point3_v4[2]) and \
+                    (0.0 > point4_v4[2]):
+                continue
 
-
+            # TODO: cull Z  in a way that makes sense perspective wise
 
             # conversion to screen points
             # this used to be 3 different functions, but by merging them like this I saved alot of performance
-            point1_v4 = (((point1_v4[0] / (point1_v4[3] + 1e-32) + 1) * screen_width / 2,
-                          (point1_v4[1] / (point1_v4[3]) + 1) * screen_height / 2))
-            point2_v4 = (((point2_v4[0] / (point2_v4[3] + 1e-32) + 1) * screen_width / 2,
-                          (point2_v4[1] / (point2_v4[3]) + 1) * screen_height / 2))
-            point3_v4 = (((point3_v4[0] / (point3_v4[3] + 1e-32) + 1) * screen_width / 2,
-                          (point3_v4[1] / (point3_v4[3]) + 1) * screen_height / 2))
-            point4_v4 = (((point4_v4[0] / (point4_v4[3] + 1e-32) + 1) * screen_width / 2,
-                          (point4_v4[1] / (point4_v4[3]) + 1) * screen_height / 2))
+            point1_v4 = (((point1_v4[0] / (math.fabs(point1_v4[3]) + 2.2250738585072014e-308) + 1) * screen_width / 2,
+                          (point1_v4[1] / (math.fabs(point1_v4[3]) + 2.2250738585072014e-308) + 1) * screen_height / 2))
+            point2_v4 = (((point2_v4[0] / (math.fabs(point2_v4[3]) + 2.2250738585072014e-308) + 1) * screen_width / 2,
+                          (point2_v4[1] / (math.fabs(point2_v4[3]) + 2.2250738585072014e-308) + 1) * screen_height / 2))
+            point3_v4 = (((point3_v4[0] / (math.fabs(point3_v4[3]) + 2.2250738585072014e-308) + 1) * screen_width / 2,
+                          (point3_v4[1] / (math.fabs(point3_v4[3]) + 2.2250738585072014e-308) + 1) * screen_height / 2))
+            point4_v4 = (((point4_v4[0] / (math.fabs(point4_v4[3]) + 2.2250738585072014e-308) + 1) * screen_width / 2,
+                          (point4_v4[1] / (math.fabs(point4_v4[3]) + 2.2250738585072014e-308) + 1) * screen_height / 2))
+
 
             i+=1
             tcl_code.append(f"{canvas} coords {i} {point1_v4[0]} {point1_v4[1]} {point2_v4[0]} {point2_v4[1]} {point3_v4[0]} {point3_v4[1]} {point4_v4[0]} {point4_v4[1]}\n")
         size=len(tcl_code)
-        for i in range(size+1,4000):
+        for i in range(size+1,4096):
             tcl_code.append(f"{canvas} coords {i} 0 0 0 0 0 0 0 0\n")
-
         return self.inter.draw_code("".join(tcl_code))
