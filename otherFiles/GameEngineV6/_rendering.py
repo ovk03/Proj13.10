@@ -8,12 +8,12 @@ created 15.12.2022 21.18
 import threading
 from ._tk_inter_inter import *
 from .structures import *
+from .__main__ import EngineTypeSingleton
 import time
 
-class CameraRenderOptimized(metaclass=EngineType):
+class CameraRenderOptimized(metaclass=EngineTypeSingleton):
     
     buffer=None
-    inter=None
 
     camera_pos = ()
     camera_rot = ()
@@ -26,7 +26,6 @@ class CameraRenderOptimized(metaclass=EngineType):
 
 
     def __init__(self, pos=(0,)*3, rot=(0,)*3):
-        self.inter = GameToTK()
         self.camera_pos = pos
         self.camera_rot = rot
 
@@ -69,8 +68,8 @@ class CameraRenderOptimized(metaclass=EngineType):
 
         c_pos_x,c_pos_y,c_pos_z = self.camera_pos
         
-        screen_width, screen_height, canvas = self.inter.get_data_for_rend()
-    
+        screen_width, screen_height, canvas = GameToTK().get_data_for_rend()
+
         trans_m3x3 = (cosx * cosy, cosx * siny * sinz - sinx * cosz,
                       cosx * siny * cosz + sinx * sinz,
                       sinx * cosy, sinx * siny * sinz + cosx * cosz,
@@ -196,6 +195,6 @@ class CameraRenderOptimized(metaclass=EngineType):
             i+=1
             tcl_code.append(f"{canvas} coords {i} {point1_v4[0]} {point1_v4[1]} {point2_v4[0]} {point2_v4[1]} {point3_v4[0]} {point3_v4[1]} {point4_v4[0]} {point4_v4[1]}\n")
         size=len(tcl_code)
-        for i in range(size+1,4096):
+        for i in range(size+1,POLYGON_COUNT):
             tcl_code.append(f"{canvas} coords {i} 0 0 0 0 0 0 0 0\n")
-        return self.inter.draw_code("".join(tcl_code))
+        return GameToTK().draw_code("".join(tcl_code))

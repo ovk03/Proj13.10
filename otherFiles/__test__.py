@@ -9,6 +9,7 @@ created 11.12.2022 20.53
 
 from GameEngineV6 import *
 from GameEngineV6 import _rendering
+from GameEngineV6 import _tk_inter_inter
 import time
 import math
 import pstats
@@ -166,7 +167,7 @@ def test():
         avrg_time=0.02
         t = -time.perf_counter()
         while inter.render():
-            inter.camera_rot=(0,i/math.pi*3,0)
+            inter.camera_rot=(0,i/math.pi*3+_tk_inter_inter.GameToTK().namespace.mouse_pos_x,0)
             inter.camera_pos=(math.sin(i/180*3)*6,0,-math.cos(i/180*3)*8)
             # inter.camera_pos=(0,0,-15)
             # print(inter.camera_rot)

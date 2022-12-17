@@ -6,7 +6,7 @@ import logging
 import multiprocessing
 import time
 import ctypes
-from .__main__ import EngineType
+from .__main__ import *
 
 """Onni Kolkka 
 150832953 (student number)
@@ -14,16 +14,13 @@ created 10.12.2022 15.06
 """
 
 
-# Dictionary containing the most common 16:9 resolutions, These correspond to specific files in data.
-COMMON_SCREEN_RESOLUTIONS= {640:360,1600:900,1920:1080,2560:1440}
-
-class TKMultiProcess(metaclass=EngineType):
+class TKMultiProcess(metaclass=EngineTypeSingleton):
 
     def __init__(self,namespace,events,size):
 
         # parse args
         self.namespace = namespace
-        self.render_event, self.waiting_event, self.stop_event = events
+        self.render_event, self.waiting_event, self.stop_event, self.command_event = events
         self.width, self.height = size
 
         # local vars
@@ -38,16 +35,13 @@ class TKMultiProcess(metaclass=EngineType):
         self.root.configure(bg="#000000")
         self.root.title("3dEngine à la noob")
         self.root.resizable(False,False)
-        self.root.geometry(f"{int(self.width)}x{int(self.height)}")
-        self.root.geometry(f"+{int((self.root.winfo_screenwidth()-self.root.winfo_width())/4)}"
-                           f"+{int((self.root.winfo_screenheight()-self.root.winfo_height())/4)}")
 
         # config element pool. This way were not recreating widgets ever
         # also this pooling approach makes the FPS consistent, as there is the same amount of work each update
         self.canvas = tkinter.Canvas(self.root,height=self.height+4,width=self.width+4,highlightbackground="#000000")
-        self.polygons = tuple([self.canvas.create_polygon(0,0, 0,0, 0,0, 0,0,) for i in range(4096)])
+        self.polygons = tuple([self.canvas.create_polygon(0,0, 0,0, 0,0, 0,0,) for i in range(POLYGON_COUNT)])
 
-        # TODO: remove tests
+
         self.set_debug_res()
 
         # default bindings
@@ -56,49 +50,69 @@ class TKMultiProcess(metaclass=EngineType):
         self.root.bind('<F11>',self.toggle_fullscreen)
 
         # enter the "mainloop"
-        logging.getLogger("Internals").debug("Entering mainloop")
-        self.buffer_event()
-        logging.getLogger("Internals").debug("Exiting mainloop")
+        if self.debug:print("\033[92mEntering Mainloop()\033[0m")
+        self.main_loop()
+        if self.debug:print("\033[92mExtiting Mainloop()\033[0m")
 
         # self.root.mainloop()
 
-    def buffer_event(self,*_):
+    def _should_lock_mouse(self):
+        return self._cursor_lock \
+           and self.is_windows \
+           and self.root.winfo_exists() \
+           and self.root.focus_displayof() is not None
+
+    def main_loop(self, *_):
         self.t = -time.perf_counter()
-        while not self.stop_event.is_set():
 
-            # guard clause for closing game
-            if self.stop_event.is_set(): break
-
+        i=0
+        # checks if should stop updating TK
+        while not self.stop_event.is_set() and self.root.winfo_exists():
+            # calculates mouse input
             self.namespace.mouse_pos_x += self.root.winfo_pointerx()-self._last_cursor_x
             self.namespace.mouse_pos_y += self.root.winfo_pointery()-self._last_cursor_y
-            if self._cursor_lock and self.is_windows:
-                ctypes.windll.user32.SetCursorPos(int( self.width / 2+self.root.winfo_x()), int(self.height / 2+self.root.winfo_y()))
+            if self._should_lock_mouse():
+                ctypes.windll.user32.SetCursorPos(int( self.width / 2+self.root.winfo_x()),
+                                                  int(self.height / 2+self.root.winfo_y()))
+
             self._last_cursor_x = self.root.winfo_pointerx()
             self._last_cursor_y = self.root.winfo_pointery()
 
+            # FIXME: maybe a security vulnerability. Should be fixed (maybe)
             if self.namespace.exec_command != "":
-                # exec(self.namespace.exec_command)
-                pass
+                self.command_event.clear()
+                self.namespace.exec_command=""
+                exec(self.namespace.exec_command)
+
+
             if self.render_event.is_set():
-                code=self.namespace.code
-                if len(code) > 0:
-                    try:
-                        self.root.eval(code)
-                    except Exception as e:
-                        logging.getLogger("Internals").debug(len(code))
-                        logging.getLogger("Internals").exception(e)
-                        continue
+                #clear flags
                 self.render_event.clear()
                 self.waiting_event.set()
+
+                # try render game data
+                code=self.namespace.code
+                try:
+                    if len(code) > 0 and code[0:4] != "None":
+                        self.root.eval(code)
+                except Exception as e:
+                    logging.getLogger("Internals").debug(len(code))
+                    logging.getLogger("Internals").exception(e)
+                    continue
+
+                # main update
                 self.root.dooneevent(_tkinter.ALL_EVENTS)
 
+                # logging framerae
                 self._avrg_time = (self.t + time.perf_counter()) * (1 - .9) + self._avrg_time * .9
-                print(1 / self._avrg_time)
+                i+=1
+                if(i%FRAME_RATE_LOG_FREQUENCY==0):
+                    print(f"FPS: {1 / self._avrg_time:.1f}")
                 self.t = -time.perf_counter()
 
-    # the ",*_" is for binding inputs to TK. Otherwise, excepted args don't match.
-    # This doesn't need the extra args, so it'll just discard them
+    # the ",*_" is for binding inputs to TK. Otherwise, excepted args don't match. This doesn't need the extra args, so it'll just discard them
     def toggle_cursor(self,*_):
+        # FIXME possible to bug tkinter out of taskbar, if called WAY too much in sort period
         self._cursor_lock = not self._cursor_lock
         if self._cursor_lock:
             self.root.config(cursor="none")
@@ -107,68 +121,63 @@ class TKMultiProcess(metaclass=EngineType):
             self.root.config(cursor="")
             self.toggle_bar_on()
 
-    # the ",*_" is for binding inputs to TK. Otherwise, the excepted args might not match.
-    # This doesn't need the extra args, so it'll just discard them
+    # the ",*_" is for binding inputs to TK. Otherwise, excepted args don't match. This doesn't need the extra args, so it'll just discard them
     def toggle_fullscreen(self, *_):
+        # FIXME possible to bug tkinter out of taskbar, if called WAY too much in sort period
         self._fullscreen = not self._fullscreen
         if self._fullscreen:
             self.toggle_bar_on()
-            self.root.attributes("-fullscreen",True)
-            self._realign_elems(self.root.winfo_screenwidth(),self.root.winfo_screenheight())
+            self.root.attributes("-fullscreen", True)
+            self.set_best_res()
         else:
-            if(self._cursor_lock):
-                self.toggle_bar_off()
-            self.root.attributes("-fullscreen",False)
-            self._realign_elems(self.root.winfo_width(),self.root.winfo_height())
+            self.set_debug_res()
 
-    # the ",*_" is for binding inputs to TK. Otherwise, the excepted args might not match.
-    # This doesn't need the extra args, so it'll just discard them
-    def toggle_bar_on(self, *_):
+    def toggle_bar_on(self):
         """toggles top bar of tk while not in fullscreen"""
         self.root.overrideredirect(False)
 
-    # the ",*_" is for binding inputs to TK. Otherwise, the excepted args might not match.
-    # This doesn't need the extra args, so it'll just discard them
-    def toggle_bar_off(self, *_):
+    def toggle_bar_off(self):
         """toggles top bar of tk while not in fullscreen"""
         self.root.overrideredirect(True)
 
-    # the ",*_" is for binding inputs to TK. Otherwise, the excepted args might not match.
-    # This doesn't need the extra args, so it'll just discard them
     def set_best_res(self,res=None):
-        """Picks best resolution. Set res to max wanted res"""
+        """Picks the best resolution. Set res to max wanted res"""
         res = res or self.root.winfo_screenwidth()
         if COMMON_SCREEN_RESOLUTIONS.__contains__(res):
 
             # sets size and syncs changes to rendering
             self.root.geometry(F"{res}x{COMMON_SCREEN_RESOLUTIONS[res]}")
 
-            if res==self.root.winfo_screenwidth():
+            if res == self.root.winfo_screenwidth():
                 self._fullscreen = True
-                self.root.attributes("-fullscreen",True)
-                self._realign_elems(self.root.winfo_screenwidth(),self.root.winfo_screenheight())
+                self.root.attributes("-fullscreen", True)
+                self._realign_elements(self.root.winfo_screenwidth(), self.root.winfo_screenheight())
             else:
                 self._fullscreen = False
-                self.root.attributes("-fullscreen",False)
-                self._realign_elems(res,COMMON_SCREEN_RESOLUTIONS[res])
+                self.root.attributes("-fullscreen", False)
+                self._realign_elements(res, COMMON_SCREEN_RESOLUTIONS[res])
         else:
             # goes through the resolutions and selects the biggest, that won't go over screen
             current_best=640
             for key in COMMON_SCREEN_RESOLUTIONS.keys():
-                if key < res and key> (current_best or 0):
+                if (current_best or 0) < key < res:
                     current_best = key
 
             # sets size and syncs changes to rendering
             self.root.geometry(F"{current_best}x{COMMON_SCREEN_RESOLUTIONS[current_best]}")
             self._fullscreen = False
             self.root.attributes("-fullscreen",False)
-            self._realign_elems(current_best,COMMON_SCREEN_RESOLUTIONS[current_best])
+            self._realign_elements(current_best, COMMON_SCREEN_RESOLUTIONS[current_best])
 
 
     def set_debug_res(self,res=None):
+        """sets resolution to one level lower than best res"""
+        if (self._cursor_lock):
+            self.toggle_bar_off()
         self.set_best_res(self.root.winfo_screenwidth()-1)
 
-    def _realign_elems(self,width,height):
+    def _realign_elements(self, width, height):
+        self.root.dooneevent(0)
         self.canvas.config(width=self.root.winfo_width()+4,height=self.root.winfo_height()+4)
         self.namespace.width = self.root.winfo_width()+4
         self.namespace.height = self.root.winfo_height()+4
@@ -183,9 +192,11 @@ class TKMultiProcess(metaclass=EngineType):
     # This doesn't need the extra args, so it'll just discard them
     def destroy(self, *_):
         self.stop_event.set()
+        self.is_working = False
         self.root.destroy()
+        del self
 
-class GameToTK(metaclass=EngineType):
+class GameToTK(metaclass=EngineTypeSingleton):
 
     width=2560/2
     height=1440/2
@@ -195,10 +206,10 @@ class GameToTK(metaclass=EngineType):
         self.stop_event = multiprocessing.Event()
         self.render_event = multiprocessing.Event()
         self.waiting_event = multiprocessing.Event()
+        self.command_event = multiprocessing.Event()
         self.manager = multiprocessing.Manager()
         self.namespace = self.manager.Namespace()
         self.namespace.code = ""
-        self.namespace.input_buffer = self.manager.Queue()
         self.namespace.mouse_pos_x = 0
         self.namespace.mouse_pos_y = 0
         self.namespace.width = 0
@@ -210,52 +221,27 @@ class GameToTK(metaclass=EngineType):
         self.waiting_event.set()
 
         multiprocessing.Process(target=TKMultiProcess, daemon=True,
-                                args=(self.namespace, (self.render_event, self.waiting_event, self.stop_event),
+                                args=(self.namespace, (self.render_event, self.waiting_event, self.stop_event,self.command_event),
                                       (self.width, self.height))).start()
-
-
-
-    # region Dep
-    # deprecated
-    def rel_to_pix(self,tri):
-        """deprecated due to performance"""
-        w=self.width
-        h=self.height
-        # print(w,h)
-        # print(tri.vert1)
-        # print(tri.vert2)
-        # print(tri.vert3)
-
-        # print(rel_tri.vert1)
-        # print()
-        return (((tri[0][0]+ 1) * w / 2,
-                    (tri[0][1] + 1) * h / 2),
-                ((tri[1][0] + 1) * w / 2,
-                    (tri[1][1] + 1) * h / 2),
-                ((tri[2][0] + 1) * w / 2,
-                    (tri[2][1] + 1) * h / 2))
-
-    # deprecated
-    def flip_y_pack(self,tris):
-        """deprecated due to performance"""
-        return (tris[0][0],self.height-tris[0][1],
-                tris[1][0],self.height-tris[1][1],
-                tris[2][0],self.height-tris[2][1])
-    # endregion
 
     def get_data_for_rend(self)->tuple:
         """returns everything needed from TCL to render triangles to TCL code"""
         # FIXME: remove hardcoded canvas name
         return (self.namespace.width, self.namespace.height, ".!canvas")
 
-
     def draw_code(self, code: str):
-        """ draw next frame
-
-        :param code: 3d things to draw to screen
-        """
+        """ draw next frame """
+        # guard clause
         if self.stop_event.is_set():
+            self.is_working = False
+            del self
             return False
+
+        self.waiting_event.wait(2)
+        self.namespace.code = code
+        self.waiting_event.clear()
+        self.render_event.set()
+        return True
 
         # try:
         #     if code[0:4] == "None":
@@ -266,11 +252,3 @@ class GameToTK(metaclass=EngineType):
         #                  getting a random readonly boolean shouldn't have any affect TK screen not appearing
         #         print(self.root.winfo_exists())
         # except Exception: pass
-
-        self.waiting_event.wait(2)
-        if code[0:4] != "None":
-            self.namespace.code = code
-
-        self.waiting_event.clear()
-        self.render_event.set()
-        return True
