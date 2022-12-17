@@ -68,8 +68,8 @@ class EngineType(type):
         # https://en.wikipedia.org/wiki/ANSI_escape_code
         # ANSI codes
         __color = {"PINK":95,"BLUE":94,"GREEN":92,"RED":91,"BOLD":1,
-                   "UNDER":4,"WHITE":97,"YELLOW":93,"CYAN":96,"ITALIC":3,
-                   "OVER":9,"BOX":51,"BLACK":30,"BLACKBG":40,"REDBG":41,
+                   "UNDERLINE":4,"WHITE":97,"YELLOW":93,"CYAN":96,"ITALIC":3,
+                   "OVERLINE":9,"BOX":51,"BLACK":30,"BLACKBG":40,"REDBG":41,
                    "GREENBG":42,"YELLOWBG":43,"BLUEBG":44,"WHITEBG":47,"COLORBG":7}
         for color in codes:
             color=str(color)

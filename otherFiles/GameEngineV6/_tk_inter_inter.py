@@ -1,5 +1,5 @@
 """manages interactions with tkinter"""
-
+import pathlib
 import tkinter
 import _tkinter
 import logging
@@ -22,6 +22,7 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
         self.namespace = namespace
         self.render_event, self.waiting_event, self.stop_event, self.command_event = events
         self.width, self.height = size
+        self.control_mouse_out_of_focus = False
 
         # local vars
         self._cursor_lock = False
@@ -41,8 +42,17 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
         self.canvas = tkinter.Canvas(self.root,height=self.height+4,width=self.width+4,highlightbackground="#000000")
         self.polygons = tuple([self.canvas.create_polygon(0,0, 0,0, 0,0, 0,0,) for i in range(POLYGON_COUNT)])
 
+        # TODO: remove test label
+        self.canvas.create_text(100,100,text="TEST")
+        print(pathlib.Path(__file__).parent.joinpath("Untitled.png"))
+        photo = tkinter.PhotoImage(file=pathlib.Path(__file__).parent.joinpath("Untitled.png"))
+        self.canvas.create_image(100,100,image=photo)
 
-        self.set_debug_res()
+        # set correct resolution
+        if(self.debug):
+            self.set_debug_res()
+        else:
+            self.set_best_res()
 
         # default bindings
         self.root.protocol("WM_DELETE_WINDOW", self.destroy)
@@ -50,9 +60,9 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
         self.root.bind('<F11>',self.toggle_fullscreen)
 
         # enter the "mainloop"
-        if self.debug:print("\033[92mEntering Mainloop()\033[0m")
+        self.log("Entering Mainloop()","GREEN","UNDERLINE")
         self.main_loop()
-        if self.debug:print("\033[92mExtiting Mainloop()\033[0m")
+        self.log("Extiting Mainloop()","GREEN","UNDERLINE")
 
         # self.root.mainloop()
 
@@ -69,14 +79,18 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
         # checks if should stop updating TK
         while not self.stop_event.is_set() and self.root.winfo_exists():
             # calculates mouse input
-            self.namespace.mouse_pos_x += self.root.winfo_pointerx()-self._last_cursor_x
-            self.namespace.mouse_pos_y += self.root.winfo_pointery()-self._last_cursor_y
             if self._should_lock_mouse():
+                self.namespace.mouse_pos_x += self.root.winfo_pointerx()-self._last_cursor_x
+                self.namespace.mouse_pos_y += self.root.winfo_pointery()-self._last_cursor_y
                 ctypes.windll.user32.SetCursorPos(int( self.width / 2+self.root.winfo_x()),
                                                   int(self.height / 2+self.root.winfo_y()))
-
-            self._last_cursor_x = self.root.winfo_pointerx()
-            self._last_cursor_y = self.root.winfo_pointery()
+                self._last_cursor_x = self.root.winfo_pointerx()
+                self._last_cursor_y = self.root.winfo_pointery()
+            elif self.control_mouse_out_of_focus:
+                self.namespace.mouse_pos_x += self.root.winfo_pointerx()-self._last_cursor_x
+                self.namespace.mouse_pos_y += self.root.winfo_pointery()-self._last_cursor_y
+                self._last_cursor_x = self.root.winfo_pointerx()
+                self._last_cursor_y = self.root.winfo_pointery()
 
             # FIXME: maybe a security vulnerability. Should be fixed (maybe)
             if self.namespace.exec_command != "":
@@ -107,7 +121,7 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
                 self._avrg_time = (self.t + time.perf_counter()) * (1 - .9) + self._avrg_time * .9
                 i+=1
                 if(i%FRAME_RATE_LOG_FREQUENCY==0):
-                    print(f"FPS: {1 / self._avrg_time:.1f}")
+                    self.log(f"FPS: {1 / self._avrg_time:.1f}","GREEN")
                 self.t = -time.perf_counter()
 
     # the ",*_" is for binding inputs to TK. Otherwise, excepted args don't match. This doesn't need the extra args, so it'll just discard them

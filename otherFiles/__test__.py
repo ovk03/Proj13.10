@@ -1,12 +1,6 @@
 """this file implements unittests"""
 import pathlib
 import sys
-
-"""Onni Kolkka 
-150832953 (student number)
-created 11.12.2022 20.53
-"""
-
 from GameEngineV6 import *
 from GameEngineV6 import _rendering
 from GameEngineV6 import _tk_inter_inter
@@ -18,6 +12,12 @@ import logging
 import unittest
 import cProfile
 from timeit import timeit
+
+"""Onni Kolkka 
+150832953 (student number)
+created 11.12.2022 20.53
+"""
+
 
 def tri(pos):
     vert_top=(pos[0],pos[1]+0.5,pos[2])
@@ -189,6 +189,8 @@ if __name__ == "__main__":
         logging.getLogger().exception(e)
     finally:
         p = pstats.Stats('testStats')
-        p.strip_dirs().sort_stats(pstats.SortKey.TIME).print_stats()
+        print("\33[94m")
+        p.strip_dirs().sort_stats(pstats.SortKey.TIME).print_stats(25)
+        print("\33[0m\33[92m\33[7m\33[1m（ ^_^）!!!EVERYTHIN WORKED!!! ヽ(´▽`)/\33[0m")
 
 

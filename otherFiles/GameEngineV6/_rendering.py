@@ -182,14 +182,14 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
 
             # conversion to screen points
             # this used to be 3 different functions, but by merging them like this I saved alot of performance
-            point1_v4 = (((point1_v4[0] / (math.fabs(point1_v4[3]) + 2.2250738585072014e-308) + 1) * screen_width / 2,
-                          (point1_v4[1] / (math.fabs(point1_v4[3]) + 2.2250738585072014e-308) + 1) * screen_height / 2))
-            point2_v4 = (((point2_v4[0] / (math.fabs(point2_v4[3]) + 2.2250738585072014e-308) + 1) * screen_width / 2,
-                          (point2_v4[1] / (math.fabs(point2_v4[3]) + 2.2250738585072014e-308) + 1) * screen_height / 2))
-            point3_v4 = (((point3_v4[0] / (math.fabs(point3_v4[3]) + 2.2250738585072014e-308) + 1) * screen_width / 2,
-                          (point3_v4[1] / (math.fabs(point3_v4[3]) + 2.2250738585072014e-308) + 1) * screen_height / 2))
-            point4_v4 = (((point4_v4[0] / (math.fabs(point4_v4[3]) + 2.2250738585072014e-308) + 1) * screen_width / 2,
-                          (point4_v4[1] / (math.fabs(point4_v4[3]) + 2.2250738585072014e-308) + 1) * screen_height / 2))
+            point1_v4 = (((point1_v4[0] / (abs(point1_v4[3]) + 2.2250738585072014e-308) + 1) * screen_width / 2,
+                          (point1_v4[1] / (abs(point1_v4[3]) + 2.2250738585072014e-308) + 1) * screen_height / 2))
+            point2_v4 = (((point2_v4[0] / (abs(point2_v4[3]) + 2.2250738585072014e-308) + 1) * screen_width / 2,
+                          (point2_v4[1] / (abs(point2_v4[3]) + 2.2250738585072014e-308) + 1) * screen_height / 2))
+            point3_v4 = (((point3_v4[0] / (abs(point3_v4[3]) + 2.2250738585072014e-308) + 1) * screen_width / 2,
+                          (point3_v4[1] / (abs(point3_v4[3]) + 2.2250738585072014e-308) + 1) * screen_height / 2))
+            point4_v4 = (((point4_v4[0] / (abs(point4_v4[3]) + 2.2250738585072014e-308) + 1) * screen_width / 2,
+                          (point4_v4[1] / (abs(point4_v4[3]) + 2.2250738585072014e-308) + 1) * screen_height / 2))
 
 
             i+=1
