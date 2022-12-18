@@ -164,7 +164,7 @@ def test():
         print(len(grid_test_10k()))
         cam().camera_rot=(0,90,0)
         # inter.render(grid_test_2k(),cache=True)
-        cam().render(obj_parse(pathlib.Path(__file__).absolute().parent.joinpath("untitled.obj")),cache=True)
+        cam().render(obj_parse(pathlib.Path(__file__).absolute().parent.joinpath("untitled.obj")))
         avrg_time=0.02
         t = -time.perf_counter()
         lerp_val=0.99

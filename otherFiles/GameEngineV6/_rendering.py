@@ -31,9 +31,10 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
         self.camera_pos = pos
         self.camera_rot = rot
 
+    def render(self, buffer=None, *_):
+        return self.render3d(buffer,True)
 
-
-    def render(self, buffer=None, cache: bool = False) -> bool:
+    def render3d(self, buffer=None, cache: bool = False) -> bool:
         """really complicated and unreadable code, but REALLY OPTIMIZED for rendering objects with tkinter
         Input is tuple of form:
         ((1,1,1),(1,1,1),(1,2,3))

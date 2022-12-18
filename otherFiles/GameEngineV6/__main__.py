@@ -5,6 +5,7 @@ for example though pycharm console with: "python [[path to this directory]]\\Gam
 
 import platform
 import logging
+import inspect
 
 """Onni Kolkka 
 150832953 (student number)
@@ -17,6 +18,7 @@ COMMON_SCREEN_RESOLUTIONS = {640:360,1600:900,1920:1080}
 POLYGON_COUNT = 2**12
 FRAME_RATE_LOG_FREQUENCY = 100
 DEBUG_GAME_ENGINE = True
+EXTRA_DEBUG_GAME_ENGINE = True
 
 class EngineType(type):
     """This is a metaclass used by Everything.
@@ -35,6 +37,7 @@ class EngineType(type):
         obj.run_count = 0
         setattr(obj, mcs.log.__name__, mcs.log)
         setattr(obj, mcs.log_func.__name__, mcs.log_func)
+        setattr(obj, mcs.link.__name__, mcs.link)
         obj.debug = DEBUG_GAME_ENGINE
         return obj
 
@@ -64,7 +67,6 @@ class EngineType(type):
     # @ staticmethod # this way no class reference needs to be passed
     # NVM in need it to be passed
     def log(cls, msg:str, *codes):
-
         # https://en.wikipedia.org/wiki/ANSI_escape_code
         # ANSI codes
         __color = {"PINK":95,"BLUE":94,"GREEN":92,"RED":91,"BOLD":1,
@@ -80,7 +82,19 @@ class EngineType(type):
                     print(f"\033[{color}m",end="")
                 else:
                     print(color,end="")
-        print(msg+"\033[0m")
+        print(msg+"\033[0m",end="")
+        if EXTRA_DEBUG_GAME_ENGINE:
+            cf = inspect.currentframe().f_back
+            print(f' File "{inspect.getframeinfo(cf).filename}", line {max(inspect.getframeinfo(cf).lineno, 1)}'.replace("\\", "/"))
+        else:
+            print()
+
+    # @ staticmethod # this way no class reference needs to be passed
+    # NVM in need it to be passed
+    def link(cls):
+        cf = inspect.currentframe().f_back
+        print(f'File "{inspect.getframeinfo(cf).filename}", line {max(inspect.getframeinfo(cf).lineno, 1)}'.replace("\\", "/"))
+
 
 class EngineTypeSingleton(EngineType):
     """This is a metaclass used by Everything.
