@@ -67,26 +67,47 @@ class EngineType(type):
     # @ staticmethod # this way no class reference needs to be passed
     # NVM in need it to be passed
     def log(cls, msg:str, *codes):
-        # https://en.wikipedia.org/wiki/ANSI_escape_code
-        # ANSI codes
-        __color = {"PINK":95,"BLUE":94,"GREEN":92,"RED":91,"BOLD":1,
-                   "UNDERLINE":4,"WHITE":97,"YELLOW":93,"CYAN":96,"ITALIC":3,
-                   "OVER":9,"BOX":51,"BLACK":30,"BLACKBG":40,"REDBG":41,
-                   "GREENBG":42,"YELLOWBG":43,"BLUEBG":44,"WHITEBG":47,"COLORBG":7}
-        for color in codes:
-            color=str(color)
-            if cls.debug:
-                if color in __color.keys():
-                    print(f"\033[{__color[color]}m",end="")
-                elif len(color) <= 2:
-                    print(f"\033[{color}m",end="")
-                else:
-                    print(color,end="")
-        print(msg+"\033[0m",end="")
-        if EXTRA_DEBUG_GAME_ENGINE:
+        try:
+            # whether to add link to print line at the end of the log
+            should_link = EXTRA_DEBUG_GAME_ENGINE
+            if codes.__contains__("LINK"):
+                should_link = True
+                codes = filter(lambda a: a != "LINK", codes)
+
+            # https://en.wikipedia.org/wiki/ANSI_escape_code
+            # ANSI escape codes
+            __color = {"PINK":95,"BLUE":94,"GREEN":92,"RED":91,"BOLD":1,
+                       "UNDERLINE":4,"WHITE":97,"YELLOW":93,"CYAN":96,"ITALIC":3,
+                       "OVER":9,"BOX":51,"BLACK":30,"BLACKBG":40,"REDBG":41,
+                       "GREENBG":42,"YELLOWBG":43,"BLUEBG":44,"WHITEBG":47,"COLORBG":7}
+            for color in codes:
+                color=str(color)
+                if cls.debug:
+                    if color in __color.keys():
+                        print(f"\033[{__color[color]}m",end="")
+                    elif len(color) <= 2:
+                        print(f"\033[{color}m",end="")
+                    else:
+                        print(color,end="")
+            print(str(msg)+"\033[0m",end="")
+
+            # link or not to link
+            if should_link:
+                cf = inspect.currentframe().f_back
+                print(f' File "{inspect.getframeinfo(cf).filename}", line {max(inspect.getframeinfo(cf).lineno, 1)}'.replace("\\", "/"))
+            else:
+                print()
+
+        except TypeError as e:
+            print(f"\033[0m\33[91mType can't be converted to string. ({e})\033[0m")
             cf = inspect.currentframe().f_back
             print(f' File "{inspect.getframeinfo(cf).filename}", line {max(inspect.getframeinfo(cf).lineno, 1)}'.replace("\\", "/"))
-        else:
+            print()
+
+        except Exception as e:
+            print(f"\033[0m\33[91mType can't be converted to string. ({e})\033[0m")
+            cf = inspect.currentframe().f_back
+            print(f' File "{inspect.getframeinfo(cf).filename}", line {max(inspect.getframeinfo(cf).lineno, 1)}'.replace("\\", "/"))
             print()
 
     # @ staticmethod # this way no class reference needs to be passed
@@ -105,6 +126,7 @@ class EngineTypeSingleton(EngineType):
 
     # inherit EngineType stuff
     def __new__(mcs, name, bases, dct): return EngineType.__new__(mcs, name, bases, dct)
+
     def __del__(cls): EngineType.__del__(cls)
 
     def __call__(cls, *args, **kwargs):
@@ -141,6 +163,7 @@ if __name__ == "__main__":
     sys.path.append(str(pathlib.Path().absolute().parent))
     try:
         from __test__ import test
+        test()
         test()
     except ModuleNotFoundError:
         logging.getLogger().error("External test failed to run. Make sure the test file exists and contains function \"test\"")

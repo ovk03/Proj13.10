@@ -11,7 +11,6 @@ from .structures import *
 from .__main__ import EngineTypeSingleton
 import time
 
-_USE_POLYGON_POOLING = False
 
 class CameraRenderOptimized(metaclass=EngineTypeSingleton):
     
@@ -32,6 +31,8 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
         self.camera_rot = rot
 
     def render(self, buffer=None, *_):
+        was_rendered=False
+        tcl_code=[]
         return self.render3d(buffer,True)
 
     def render3d(self, buffer=None, cache: bool = False) -> bool:
@@ -44,22 +45,17 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
         # 2. constants
         # 3. calculations
         """
-    
+
+
         # 1. checks
-    
         if type(buffer) is not list:
             buffer = self.buffer
         elif cache:
             self.buffer = buffer
-    
+
+
         # 2. constants
-    
-        sinx = math.sin(self.camera_rot[0] * math.radians(1))
-        cosx = math.cos(self.camera_rot[0] * math.radians(1))
-        siny = math.sin(self.camera_rot[1] * math.radians(1))
-        cosy = math.cos(self.camera_rot[1] * math.radians(1))
-        sinz = math.sin(self.camera_rot[2] * math.radians(1))
-        cosz = math.cos(self.camera_rot[2] * math.radians(1))
+
     
         x_fov = 9 / 10
         y_fov = 16 / 10
@@ -73,11 +69,20 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
         
         screen_width, screen_height, canvas = GameToTK().get_data_for_rend()
 
-        trans_m3x3 = (cosx * cosy, cosx * siny * sinz - sinx * cosz,
-                      cosx * siny * cosz + sinx * sinz,
-                      sinx * cosy, sinx * siny * sinz + cosx * cosz,
-                      sinx * siny * cosz - cosx * sinz,
-                      -siny, cosy * sinz, cosy * cosz)
+        sa = math.sin(self.camera_rot[0] * math.radians(1))
+        ca = math.cos(self.camera_rot[0] * math.radians(1))
+        sb = math.sin(self.camera_rot[1] * math.radians(1))
+        cb = math.cos(self.camera_rot[1] * math.radians(1))
+        sy = math.sin(self.camera_rot[2] * math.radians(1))
+        cy = math.cos(self.camera_rot[2] * math.radians(1))
+
+        # https://en.wikipedia.org/wiki/Rotation_matrix
+        # I had to change multiply order to z last
+        trans_m3x3 = (
+            cy*cb - sy*sa*sb,   cy*sa*sb + sy*cb,   ca*sb,
+            -sy * ca        ,   cy*ca           ,   -sa,
+            -cy*sb - sy*sa*cb,  cy*sa*cb - sy*sb,   ca * cb)
+
         proj_m4 = (
             x_fov, 0, 0, 0,
             0, y_fov, 0, 0,
@@ -88,52 +93,51 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
 
 
         # 3. calculations
-        i=0
         for tri in buffer:
             point1_v4 = (
                 trans_m3x3[0] * (tri[3]-c_pos_x)+
-                trans_m3x3[1] * (tri[4]-c_pos_y)+
-                trans_m3x3[2] * (tri[5]-c_pos_z),
-                trans_m3x3[3] * (tri[3]-c_pos_x)+
+                trans_m3x3[3] * (tri[4]-c_pos_y)+
+                trans_m3x3[6] * (tri[5]-c_pos_z),
+                trans_m3x3[1] * (tri[3]-c_pos_x)+
                 trans_m3x3[4] * (tri[4]-c_pos_y)+
-                trans_m3x3[5] * (tri[5]-c_pos_z),
-                trans_m3x3[6] * (tri[3]-c_pos_x)+
-                trans_m3x3[7] * (tri[4]-c_pos_y)+
+                trans_m3x3[7] * (tri[5]-c_pos_z),
+                trans_m3x3[2] * (tri[3]-c_pos_x)+
+                trans_m3x3[5] * (tri[4]-c_pos_y)+
                 trans_m3x3[8] * (tri[5]-c_pos_z))
             point2_v4 = (
                 trans_m3x3[0] * (tri[6]-c_pos_x)+
-                trans_m3x3[1] * (tri[7]-c_pos_y)+
-                trans_m3x3[2] * (tri[8]-c_pos_z),
-                trans_m3x3[3] * (tri[6]-c_pos_x)+
+                trans_m3x3[3] * (tri[7]-c_pos_y)+
+                trans_m3x3[6] * (tri[8]-c_pos_z),
+                trans_m3x3[1] * (tri[6]-c_pos_x)+
                 trans_m3x3[4] * (tri[7]-c_pos_y)+
-                trans_m3x3[5] * (tri[8]-c_pos_z),
-                trans_m3x3[6] * (tri[6]-c_pos_x)+
-                trans_m3x3[7] * (tri[7]-c_pos_y)+
+                trans_m3x3[7] * (tri[8]-c_pos_z),
+                trans_m3x3[2] * (tri[6]-c_pos_x)+
+                trans_m3x3[5] * (tri[7]-c_pos_y)+
                 trans_m3x3[8] * (tri[8]-c_pos_z))
             point3_v4 = (
                 trans_m3x3[0] * (tri[9]-c_pos_x)+
-                trans_m3x3[1] * (tri[10]-c_pos_y)+
-                trans_m3x3[2] * (tri[11]-c_pos_z),
-                trans_m3x3[3] * (tri[9]-c_pos_x)+
+                trans_m3x3[3] * (tri[10]-c_pos_y)+
+                trans_m3x3[6] * (tri[11]-c_pos_z),
+                trans_m3x3[1] * (tri[9]-c_pos_x)+
                 trans_m3x3[4] * (tri[10]-c_pos_y)+
-                trans_m3x3[5] * (tri[11]-c_pos_z),
-                trans_m3x3[6] * (tri[9]-c_pos_x)+
-                trans_m3x3[7] * (tri[10]-c_pos_y)+
+                trans_m3x3[7] * (tri[11]-c_pos_z),
+                trans_m3x3[2] * (tri[9]-c_pos_x)+
+                trans_m3x3[5] * (tri[10]-c_pos_y)+
                 trans_m3x3[8] * (tri[11]-c_pos_z))
             point4_v4 = (
                 trans_m3x3[0] * (tri[12]-c_pos_x)+
-                trans_m3x3[1] * (tri[13]-c_pos_y)+
-                trans_m3x3[2] * (tri[14]-c_pos_z),
-                trans_m3x3[3] * (tri[12]-c_pos_x)+
+                trans_m3x3[3] * (tri[13]-c_pos_y)+
+                trans_m3x3[6] * (tri[14]-c_pos_z),
+                trans_m3x3[1] * (tri[12]-c_pos_x)+
                 trans_m3x3[4] * (tri[13]-c_pos_y)+
-                trans_m3x3[5] * (tri[14]-c_pos_z),
-                trans_m3x3[6] * (tri[12]-c_pos_x)+
-                trans_m3x3[7] * (tri[13]-c_pos_y)+
+                trans_m3x3[7] * (tri[14]-c_pos_z),
+                trans_m3x3[2] * (tri[12]-c_pos_x)+
+                trans_m3x3[5] * (tri[13]-c_pos_y)+
                 trans_m3x3[8] * (tri[14]-c_pos_z))
 
-            z = ((point1_v4[0]*point1_v4[0]+point1_v4[2]*point1_v4[2]+point1_v4[1]*point1_v4[1])*
-                 (point2_v4[0]*point2_v4[0]+point2_v4[2]*point2_v4[2]+point2_v4[1]*point2_v4[1])*
-                 (point3_v4[0]*point3_v4[0]+point3_v4[2]*point3_v4[2]+point3_v4[1]*point3_v4[1])*
+            z = ((point1_v4[0]*point1_v4[0]+point1_v4[2]*point1_v4[2]+point1_v4[1]*point1_v4[1])+
+                 (point2_v4[0]*point2_v4[0]+point2_v4[2]*point2_v4[2]+point2_v4[1]*point2_v4[1])+
+                 (point3_v4[0]*point3_v4[0]+point3_v4[2]*point3_v4[2]+point3_v4[1]*point3_v4[1])+
                  (point4_v4[0]*point4_v4[0]+point4_v4[2]*point4_v4[2]+point4_v4[1]*point4_v4[1]))
 
 
@@ -203,21 +207,18 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
 
             a=int(z/100000)
 
-            i+=1
-            if _USE_POLYGON_POOLING:
-                tcl_code.append((z,f"{canvas} coords {i} {point1_v4[0]} {point1_v4[1]} {point2_v4[0]} {point2_v4[1]} {point3_v4[0]} {point3_v4[1]} {point4_v4[0]} {point4_v4[1]}\n"
-                                f"{canvas} itemconfigure {i} -fill #{tri[0]:02x}{tri[1]:02x}{tri[2]:002x}\n"))
-            else:
-                tcl_code.append((z,f"{canvas} create poly {point1_v4[0]} {point1_v4[1]} {point2_v4[0]} {point2_v4[1]} "
-                                   f"{point3_v4[0]} {point3_v4[1]} {point4_v4[0]} {point4_v4[1]} -tag 3d "
-                                   f"-fill #{tri[0]:02x}{tri[1]:02x}{tri[2]:02x}\n"))
+            # tcl_code.append((z,f"{canvas} coords {i} {point1_v4[0]} {point1_v4[1]} {point2_v4[0]} {point2_v4[1]} {point3_v4[0]} {point3_v4[1]} {point4_v4[0]} {point4_v4[1]}\n"
+            #                 f"{canvas} itemconfigure {i} -fill #{tri[0]:02x}{tri[1]:02x}{tri[2]:002x}\n"))
+
+            tcl_code.append((z,f"{canvas} create poly {point1_v4[0]} {point1_v4[1]} {point2_v4[0]} {point2_v4[1]} "
+                               f"{point3_v4[0]} {point3_v4[1]} {point4_v4[0]} {point4_v4[1]} -tag 3d "
+                               f"-fill #{tri[0]:02x}{tri[1]:02x}{tri[2]:02x}\n"))
         size=len(tcl_code)
         tcl_code=sorted(tcl_code,reverse=True)
         tcl_code=[string for _, string in tcl_code]
 
-        if _USE_POLYGON_POOLING:
-            for i in range(size+1,POLYGON_COUNT):
-                tcl_code.append(f"{canvas} coords {i} 0 0 0 0 0 0 0 0\n"
-                                f"{canvas} itemconfigure  {i} -fill #000000\n")
+        # for i in range(size+1,POLYGON_COUNT):
+        #     tcl_code.append(f"{canvas} coords {i} 0 0 0 0 0 0 0 0\n"
+        #                     f"{canvas} itemconfigure {i} -fill #000000\n")
 
         return GameToTK().draw_code("".join(tcl_code))

@@ -12,7 +12,6 @@ import pathlib
 import logging
 import unittest
 import cProfile
-from timeit import timeit
 
 """Onni Kolkka 
 150832953 (student number)
@@ -173,19 +172,32 @@ def test():
         cam().camera_pos=(0,2.5,-5)
         while cam().render():
             i += (t+time.perf_counter())*20
-            avrg_time=(t+time.perf_counter())*(1-lerp_val)+avrg_time*lerp_val
+            delta_t=t+time.perf_counter()
+            avrg_time=(delta_t)*(1-lerp_val)+avrg_time*lerp_val
             t = -time.perf_counter()
-            cam().camera_rot=(0,(GameToTK().namespace.mouse_pos_x-last_x)/10,0)
+            cam().camera_rot=((GameToTK().namespace.mouse_pos_y-last_y)/10,
+                              -(GameToTK().namespace.mouse_pos_x-last_x)/10,0)
 
-            cam().camera_pos=v3_plus(cam().camera_pos,structures.reversed_rotation_matrix(cam().camera_rot,(0,0,-(GameToTK().namespace.mouse_pos_y-last_y)/100)))
+            y_input = 1 if GameToTK().get_key('w') else 0
+            y_input-= 1 if GameToTK().get_key('s') else 0
+            x_input = 1 if GameToTK().get_key('a') else 0
+            x_input-= 1 if GameToTK().get_key('d') else 0
+            z_input = 1 if GameToTK().get_key('q') else 0
+            z_input-= 1 if GameToTK().get_key('e') else 0
+            if(GameToTK().get_key("Shift_L")):
+                x_input*=5
+                y_input*=5
+                z_input*=5
+            cam().camera_pos=v3_plus(cam().camera_pos,
+                             structures.reversed_rotation_matrix(cam().camera_rot,
+                             (x_input*delta_t*3,z_input,y_input*delta_t*3)))
 
-            last_y=GameToTK().namespace.mouse_pos_y
             # inter.camera_pos=(0,0,-15)
             # print(inter.camera_rot)
             # print(f"frame rate: {1 / (avrg_time + 1e-20)}")
     except Exception as e:
         logging.getLogger().exception(e)
-    unittest.main()
+    cProfile.run("unittest.main()","unittest")
 
 from GameEngineV6._file_helper import *
 

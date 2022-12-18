@@ -16,7 +16,7 @@ if __name__ == "__main__":
         print("\33[94mHi welcome to my little gaem enige, i maed it myself （ ^_^）")
         print("\33[1m\33[4mBe sure to read the documetation before getting overwhelmed by my spaghetti code")
         print("\n\33[0m\33[93m\33[7mRunning Unittests:\33[0m")
-        cProfile.run("utest()","init_test")
+        cProfile.run("utest()","unittest")
 
         print(f"\33[0m\33[92m\33[7m\33[1m\n{' '*20}!!!EVERYTHIN WORKED!!! ヽ(´▽`)/\n\n\33[0m")
     except Exception as e:

@@ -189,34 +189,56 @@ def v3_plus(a,b):
     return (a[0]+b[0],a[1]+b[1],a[2]+b[2])
 
 @functools.lru_cache
-def reversed_rotation_matrix(rot,pos):
-    sinx = math.sin(rot[0] * math.radians(1))
-    cosx = math.cos(rot[0] * math.radians(1))
-    siny = math.sin(rot[1] * math.radians(1))
-    cosy = math.cos(rot[1] * math.radians(1))
-    sinz = math.sin(rot[2] * math.radians(1))
-    cosz = math.cos(rot[2] * math.radians(1))
-    trans_m3x3 = (cosx * cosy, sinx * cosy, -siny,
-                  cosx * siny * sinz - sinx * cosz,
-                  sinx * siny * sinz + cosx * cosz,
-                  cosy * sinz, cosx * siny * cosz + sinx * sinz,
-                  sinx * siny * cosz - cosx * sinz, cosy * cosz)
-
-    return optimal_m4x4_times_v4_transform(trans_m3x3,pos)
-@functools.lru_cache
 def rotation_matrix(rot,pos):
-    sinx = math.sin(rot[0] * math.radians(1))
-    cosx = math.cos(rot[0] * math.radians(1))
-    siny = math.sin(rot[1] * math.radians(1))
-    cosy = math.cos(rot[1] * math.radians(1))
-    sinz = math.sin(rot[2] * math.radians(1))
-    cosz = math.cos(rot[2] * math.radians(1))
-    trans_m3x3 = (cosx * cosy, cosx * siny * sinz - sinx * cosz,
-                  cosx * siny * cosz + sinx * sinz,
-                  sinx * cosy, sinx * siny * sinz + cosx * cosz,
-                  sinx * siny * cosz - cosx * sinz,
-                  -siny, cosy * sinz, cosy * cosz)
-    return optimal_m4x4_times_v4_transform(trans_m3x3,pos)
+    sa = math.sin(rot[0] * math.radians(1))
+    ca = math.cos(rot[0] * math.radians(1))
+    sb = math.sin(rot[1] * math.radians(1))
+    cb = math.cos(rot[1] * math.radians(1))
+    sy = math.sin(rot[2] * math.radians(1))
+    cy = math.cos(rot[2] * math.radians(1))
+
+    # https://en.wikipedia.org/wiki/Rotation_matrix
+    # I had to change multiply order to z last
+    trans_m3x3 = (
+        cy*cb - sy*sa*sb,   cy*sa*sb + sy*cb,   ca*sb,
+        -sy * ca        ,   cy*ca           ,   -sa,
+        -cy*sb - sy*sa*cb,  cy*sa*cb - sy*sb,   ca * cb)
+
+    return (trans_m3x3[0] * pos[0]+
+            trans_m3x3[3] * pos[1]+
+            trans_m3x3[6] * pos[2],
+            trans_m3x3[1] * pos[0]+
+            trans_m3x3[4] * pos[1]+
+            trans_m3x3[7] * pos[2],
+            trans_m3x3[2] * pos[0]+
+            trans_m3x3[5] * pos[1]+
+            trans_m3x3[8] * pos[2])
+
+@functools.lru_cache
+def reversed_rotation_matrix(rot,pos):
+    sa = math.sin(rot[0] * math.radians(1))
+    ca = math.cos(rot[0] * math.radians(1))
+    sb = math.sin(rot[1] * math.radians(1))
+    cb = math.cos(rot[1] * math.radians(1))
+    sy = math.sin(rot[2] * math.radians(1))
+    cy = math.cos(rot[2] * math.radians(1))
+
+    # https://en.wikipedia.org/wiki/Rotation_matrix
+    # I had to change multiply order to z last
+    trans_m3x3 = (
+        cy*cb - sy*sa*sb,   cy*sa*sb + sy*cb,   ca*sb,
+        -sy * ca        ,   cy*ca           ,   -sa,
+        -cy*sb - sy*sa*cb,  cy*sa*cb - sy*sb,   ca * cb)
+
+    return (trans_m3x3[0] * pos[0]+
+            trans_m3x3[1] * pos[1]+
+            trans_m3x3[2] * pos[2],
+            trans_m3x3[3] * pos[0]+
+            trans_m3x3[4] * pos[1]+
+            trans_m3x3[5] * pos[2],
+            trans_m3x3[6] * pos[0]+
+            trans_m3x3[7] * pos[1]+
+            trans_m3x3[8] * pos[2])
 
 # #https://en.wikipedia.org/wiki/Matrix_multiplication
 @functools.lru_cache

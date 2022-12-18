@@ -15,8 +15,8 @@ created 10.12.2022 15.06
 
 class GameToTK(metaclass=EngineTypeSingleton):
 
-    width=2560/2
-    height=1440/2
+    width=2560
+    height=1440
     polygons=[]
 
     def __init__(self):
@@ -24,13 +24,20 @@ class GameToTK(metaclass=EngineTypeSingleton):
         self.render_event = multiprocessing.Event()
         self.waiting_event = multiprocessing.Event()
         self.command_event = multiprocessing.Event()
+        self.key_event= multiprocessing.Event()
+
         self.manager = multiprocessing.Manager()
         self.namespace = self.manager.Namespace()
-        self.namespace.code = ""
+
         self.namespace.mouse_pos_x = 0
         self.namespace.mouse_pos_y = 0
         self.namespace.width = 0
         self.namespace.height = 0
+
+        self.namespace.key_list = {}
+        self.namespace.code = ""
+
+        self._key_list = {}
 
         # FIXME: python exec function is pretty terrible way to implement
         #        propably should use specific event for each function
@@ -38,14 +45,23 @@ class GameToTK(metaclass=EngineTypeSingleton):
 
         self.waiting_event.set()
 
-        multiprocessing.Process(target=TKMultiProcess, daemon=True,
-                                args=(self.namespace, (self.render_event, self.waiting_event, self.stop_event,self.command_event),
-                                      (self.width, self.height))).start()
+        multiprocessing.Process(
+            target=TKMultiProcess, daemon=True,args=(self.namespace,
+            # events
+            (self.render_event, self.waiting_event, self.stop_event,self.command_event,self.key_event),
+            # configs
+            (self.width, self.height))).start()
 
     def get_data_for_rend(self)->tuple:
         """returns everything needed from TCL to render triangles to TCL code"""
         # FIXME: remove hardcoded canvas name
         return (self.namespace.width, self.namespace.height, ".!canvas")
+
+    def get_key(self,keycode):
+        if self.key_event.is_set():
+            self._key_list=self.namespace.key_list
+            self.key_event.clear()
+        return self._key_list.get(keycode,False)
 
     def draw_code(self, code: str):
         """ draw next frame """

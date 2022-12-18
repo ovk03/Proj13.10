@@ -19,11 +19,11 @@ created 18.12.2022 2.53
 
 class TKMultiProcess(metaclass=EngineTypeSingleton):
 
-    def __init__(self,namespace,events,size):
-
+    def init_variables(self, namespace, events, size):
         # parse args
         self.namespace = namespace
-        self.render_event, self.waiting_event, self.stop_event, self.command_event = events
+        self.render_event, self.waiting_event, self.stop_event, \
+        self.command_event, self.key_event = events
         self.width, self.height = size
         self.control_mouse_out_of_focus = False
 
@@ -33,34 +33,45 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
         self._last_cursor_x = 0
         self._last_cursor_y = 0
         self._avrg_time = 0.02
+        self._last_cursor_x = 0
+        self._last_cursor_y = 0
+        self._key_list = {}
 
+    def init_TK(self):
         # config root
         self.root = tkinter.Tk()
         self.root.configure(bg="#000000")
         self.root.title("3dEngine à la noob")
-        self.root.resizable(False,False)
+        self.root.resizable(False, False)
+        self.canvas = tkinter.Canvas(self.root, height=self.height + 4, width=self.width + 4,
+                                     highlightbackground="#000000")
 
-        # config element pool. This way were not recreating widgets ever
-        # also this pooling approach makes the FPS consistent, as there is the same amount of work each update
-        self.canvas = tkinter.Canvas(self.root,height=self.height+4,width=self.width+4,highlightbackground="#000000")
-        self.polygons = tuple([self.canvas.create_polygon(0,0, 0,0, 0,0, 0,0,) for i in range(POLYGON_COUNT)])
+        self.root.protocol("WM_DELETE_WINDOW", self.destroy)
+
 
         # TODO: remove test label
-        self.canvas.create_text(100,100,text="TEST")
+        self.canvas.create_text(100, 100, text="TEST")
         print(pathlib.Path(__file__).parent.joinpath("Untitled.png"))
         photo = tkinter.PhotoImage(file=pathlib.Path(__file__).parent.joinpath("Untitled.png"))
-        self.canvas.create_image(100,100,image=photo)
+        self.canvas.create_image(100, 100, image=photo)
+
+
+        # default bindings
+        self.root.bind('<Escape>',self.toggle_cursor)
+        self.root.bind('<F11>',self.toggle_fullscreen)
+        self.root.bind('<KeyPress>',self.reg_key_down)
+        self.root.bind('<KeyRelease>',self.reg_key_up)
+
+    def __init__(self,*args):
+
+        self.init_variables(*args)
+        self.init_TK()
 
         # set correct resolution
-        if(self.debug):
+        if self.debug:
             self.set_debug_res()
         else:
             self.set_best_res()
-
-        # default bindings
-        self.root.protocol("WM_DELETE_WINDOW", self.destroy)
-        self.root.bind('<Escape>',self.toggle_cursor)
-        self.root.bind('<F11>',self.toggle_fullscreen)
 
         # enter the "mainloop"
         self.log("Entering Mainloop()","GREEN","UNDERLINE")
@@ -91,6 +102,7 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
 
                 self._last_cursor_x = self.root.winfo_pointerx()
                 self._last_cursor_y = self.root.winfo_pointery()
+
             elif self.control_mouse_out_of_focus:
                 self.namespace.mouse_pos_x += self.root.winfo_pointerx()-self._last_cursor_x
                 self.namespace.mouse_pos_y += self.root.winfo_pointery()-self._last_cursor_y
@@ -114,20 +126,23 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
                 self.render_event.clear()
                 self.waiting_event.set()
 
+                self.canvas.delete("3d")
+
                 # try render game data
                 code=self.namespace.code
-                try:
-                    if len(code) > 0 and code[0:4] != "None":
-                        self.canvas.delete("3d")
-                        self.root.eval(code)
-                except Exception as e:
-                    self.log(len(code),"RED","COLORBG")
-                    self.link()
-                    logging.getLogger().exception(e)
-                    self.destroy()
+                if len(code) > 0 and code[0:4] != "None":
+                    try:
+                         self.root.eval(code)
+                    except Exception as e:
+                        self.log(len(code),"RED","COLORBG")
+                        self.link()
+                        logging.getLogger().exception(e)
+                        self.destroy()
 
                 # main update
                 self.root.dooneevent(_tkinter.ALL_EVENTS)
+                self.root.dooneevent(_tkinter.DONT_WAIT)
+                self.root.dooneevent(_tkinter.DONT_WAIT)
 
                 # logging framerae
                 self._avrg_time = (self.t + time.perf_counter()) * (1 - .9) + self._avrg_time * .9
@@ -136,17 +151,27 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
                     self.log(f"FPS: {1 / self._avrg_time:.1f}","GREEN")
                 self.t = -time.perf_counter()
 
-
-
-    # the ",*_" is for binding inputs to TK. Otherwise, the excepted args might not match.
-    # This doesn't need the extra args, so it'll just discard them
+    # the ",*_" is for discarding unwanted args.
     def destroy(self, *_):
         self.stop_event.set()
         self.is_working = False
         self.root.destroy()
         del self
 
-    # the ",*_" is for binding inputs to TK. Otherwise, excepted args don't match. This doesn't need the extra args, so it'll just discard them
+    def reg_key_up(self, args):
+        self._key_list[args.keysym]=False
+        self.namespace.key_list=self._key_list
+        self.key_event.set()
+
+    def reg_key_down(self, args):
+        print(args)
+        if self._key_list.get(args.keysym, False):
+            return
+        self._key_list[args.keysym]=True
+        self.namespace.key_list=self._key_list
+        self.key_event.set()
+
+    # the ",*_" is for discarding unwanted args.
     def toggle_cursor(self,*_):
         # FIXME possible to bug tkinter out of taskbar, if called WAY too much in sort period
         self._cursor_lock = not self._cursor_lock
@@ -157,7 +182,7 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
             self.root.config(cursor="")
             self.toggle_bar_on()
 
-    # the ",*_" is for binding inputs to TK. Otherwise, excepted args don't match. This doesn't need the extra args, so it'll just discard them
+    # the ",*_" is for discarding unwanted args.
     def toggle_fullscreen(self, *_):
         # FIXME possible to bug tkinter out of taskbar, if called WAY too much in sort period
         self._fullscreen = not self._fullscreen
@@ -204,7 +229,6 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
             self._fullscreen = False
             self.root.attributes("-fullscreen",False)
             self._realign_elements(current_best, COMMON_SCREEN_RESOLUTIONS[current_best])
-
 
     def set_debug_res(self,res=None):
         """sets resolution to one level lower than best res"""
