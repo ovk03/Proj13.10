@@ -1,91 +1,90 @@
 """manages interactions with tkinter"""
 
+import multiprocessing
+import time
+
+from ._tk_multiprocess import *
+from .__main__ import *
 
 """Onni Kolkka 
 150832953 (student number)
 created 10.12.2022 15.06
 """
 
-from .structures import *
-import tkinter
 
-class Interpeter:
 
-    buffer = None
-    root = None
-    is_running = True
-    width=1920
-    height=1080
+class GameToTK(metaclass=EngineTypeSingleton):
+
+    width=2560
+    height=1440
     polygons=[]
 
     def __init__(self):
-        self.root = tkinter.Tk()
-        self.root.geometry(f"{self.width}x{self.height}")
-        self.canvas = tkinter.Canvas(self.root,height=self.height,width=self.width)
-        self.canvas.pack()
+        self.stop_event = multiprocessing.Event()
+        self.render_event = multiprocessing.Event()
+        self.waiting_event = multiprocessing.Event()
+        self.command_event = multiprocessing.Event()
+        self.key_event= multiprocessing.Event()
 
-        self.polygons=[self.canvas.create_polygon(0,0, 0,0, 0,0, 0,0) for i in range(10000)]
-        pass
+        self.manager = multiprocessing.Manager()
+        self.namespace = self.manager.Namespace()
 
-    # region Dep
-    # deprecated
-    def rel_to_pix(self,tri):
-        """deprecated due to performance"""
-        w=self.width
-        h=self.height
-        # print(w,h)
-        # print(tri.vert1)
-        # print(tri.vert2)
-        # print(tri.vert3)
+        self.namespace.mouse_pos_x = 0
+        self.namespace.mouse_pos_y = 0
+        self.namespace.width = 0
+        self.namespace.height = 0
 
-        # print(rel_tri.vert1)
-        # print()
-        return (((tri[0][0]+ 1) * w / 2,
-                    (tri[0][1] + 1) * h / 2),
-                ((tri[1][0] + 1) * w / 2,
-                    (tri[1][1] + 1) * h / 2),
-                ((tri[2][0] + 1) * w / 2,
-                    (tri[2][1] + 1) * h / 2))
+        self.namespace.key_list = {}
+        self.namespace.code = ""
 
-    # deprecated
-    def flip_y_pack(self,tris):
-        """deprecated due to performance"""
-        return (tris[0][0],self.height-tris[0][1],
-                tris[1][0],self.height-tris[1][1],
-                tris[2][0],self.height-tris[2][1])
-    # endregion
+        self._key_list = {}
 
-    def get_width_and_height(self):
-        return (self.width,self.height)
+        # FIXME: python exec function is pretty terrible way to implement
+        #        propably should use specific event for each function
+        self.namespace.exec_command = " "
 
+        self.waiting_event.set()
 
-    def draw(self, new_buffer: list):
-        """ draw next frame
+        multiprocessing.Process(
+            target=TKMultiProcess, daemon=True,args=(self.namespace,
+            # events
+            (self.render_event, self.waiting_event, self.stop_event,self.command_event,self.key_event),
+            # configs
+            (self.width, self.height))).start()
 
-        :param new_buffer: 3d things to draw to screen
-        :type new_buffer: DrawBuffer
-        """
+    def get_data_for_rend(self)->tuple:
+        """returns everything needed from TCL to render triangles to TCL code"""
+        # FIXME: remove hardcoded canvas name
+        return (self.namespace.width, self.namespace.height, ".!canvas")
 
-        # TODO: this is terrible for performance reusing polygons is a necessary improvement for realtime rendering
-        # TODO: just deleting everything will do for getting the engine to run for the first time
+    def get_key(self,keycode):
+        if self.key_event.is_set():
+            self._key_list=self.namespace.key_list
+            self.key_event.clear()
+        return self._key_list.get(keycode,False)
 
-        try:
-            self.root.winfo_exists()
-        except Exception:
+    def draw_code(self, code: str):
+        """ draw next frame """
+        # guard clause
+
+        if self.stop_event.is_set():
+            self.is_working = False
+            self.log("Draw failed. Window was probably closed","YELLOW")
+            del self
             return False
-        if(len(new_buffer)==0):
-            print("no triangles in buffer")
 
-        # method 1
-        for tri_and_poly in zip(new_buffer, self.polygons):
-            self.canvas.coords(tri_and_poly[1],tri_and_poly[0])
-
-        # method 2
-        # self.canvas.delete("all")
-        # for tri in new_buffer:
-        #     self.canvas.create_polygon(tri)
-
-        self.root.update()
+        self.waiting_event.wait(2)
+        self.namespace.code = code
+        self.waiting_event.clear()
+        self.render_event.set()
         return True
 
-
+        # try:
+        #     if code[0:4] == "None":
+        #         # TODO: figure out why removing this makes the WHOOLE thing not work
+        #         # TODO: I cant even replace it with another check
+        #
+        #         # FIXME: never figured out what caused "self.root.winfo_exists()" to magically fix my project
+        #                  getting a random readonly boolean shouldn't have any affect TK screen not appearing
+        #         print(self.root.winfo_exists())
+        # except Exception: pass

@@ -2,10 +2,12 @@
 150832953 (student number)
 created 10.12.2022 21.02
 """
+import threading
 import time
+import tkinter
 from collections import namedtuple
 from copy import copy
-
+import queue
 
 #region test 1
 Colour = namedtuple('Colour', 'r,g,b')
@@ -169,7 +171,22 @@ def main2():
         s+=i
     print(t+time.time())
     print(s)
+# endregion
 
+# region test 3
+class test3:
+    def tk(self):
+        self.root.update()
+    def __init__(self):
+        self.root=tkinter.Tk()
+        t=threading.Thread(target=self.thread,self.tk)
+        t.start()
+    def thread(self,func):
+        while True:
+            func()
+
+
+#endregion
 
 if __name__ == '__main__':
-    main2()
+    test3()

@@ -10,13 +10,10 @@ import functools
 import math
 import unittest
 import copy
-import platform
-
-print(platform.processor())
+import threading
 from ._tk_inter_inter import *
 from .structures import *
 import time
-
 
 class CameraRender:
     camera_pos = ()
@@ -28,11 +25,12 @@ class CameraRender:
     sinz = 0.0
     cosz = 0.0
 
+    tkinter_thread = None
+
     def __init__(self, pos=(0,) * 3, rot=(0,) * 3):
-        self.inter = Interpeter()
+        self.inter = GameToTK()
         self.camera_pos = pos
         self.camera_rot = rot
-
     # region deprecated
 
     # deprecated
@@ -254,16 +252,85 @@ class CameraRender:
 
     # endregion
 
+    # # for testing times
+    # # n 60% of rendering time here
+    # def process1(self,tri,trans_m3x4):
+    #     point1_v4 = optimal_m4x4_times_v4_transform(trans_m3x4,
+    #                                                 (tri[0][0] - self.camera_pos[0],
+    #                                                  tri[0][1] - self.camera_pos[1],
+    #                                                  tri[0][2] - self.camera_pos[2]))
+    #     point2_v4 = optimal_m4x4_times_v4_transform(trans_m3x4,
+    #                                                 (tri[1][0] - self.camera_pos[0],
+    #                                                  tri[1][1] - self.camera_pos[1],
+    #                                                  tri[1][2] - self.camera_pos[2]))
+    #     point3_v4 = optimal_m4x4_times_v4_transform(trans_m3x4,
+    #                                                 (tri[2][0] - self.camera_pos[0],
+    #                                                  tri[2][1] - self.camera_pos[1],
+    #                                                  tri[2][2] - self.camera_pos[2]))
+    #     point4_v4 = optimal_m4x4_times_v4_transform(trans_m3x4,
+    #                                                 (tri[3][0] - self.camera_pos[0],
+    #                                                  tri[3][1] - self.camera_pos[1],
+    #                                                  tri[3][2] - self.camera_pos[2]))
+    #
+    # # for testing times
+    # # n 20% of rendering time here
+    # def process2(self, point1_v4, point2_v4, point3_v4, point4_v4, proj_m4):
+    #     # TODO: clamp them in a way that makes sense perspective wise
+    #     # if (0.0 > point1_v4[2]) or \
+    #     #         (0.0 > point2_v4[2]) or \
+    #     #         (0.0 > point2_v4[2]) or \
+    #     #         (0.0 > point4_v4[2]):
+    #     #     continue
+    #
+    #     point1_v4 = optimal_m4x4_times_v4_camera(proj_m4, point1_v4)
+    #     point2_v4 = optimal_m4x4_times_v4_camera(proj_m4, point2_v4)
+    #     point3_v4 = optimal_m4x4_times_v4_camera(proj_m4, point3_v4)
+    #     point4_v4 = optimal_m4x4_times_v4_camera(proj_m4, point4_v4)
+    #
+    # # for testing times
+    # # n 20% of rendering time here
+    # def process3(self, point1_v4, point2_v4, point3_v4,point4_v4, screen_height, screen_width):
+    #     # conversion to screen points
+    #     # this used to be 3 different functions, but by merging them like this I saved alot of performance
+    #     point1_v4 = (((point1_v4[0] / (point1_v4[3] + 1e-32) + 1) * screen_width / 2,
+    #                   screen_height - (point1_v4[1] / (point1_v4[3] + 1e-32) + 1) * screen_height / 2))
+    #     point2_v4 = (((point2_v4[0] / (point2_v4[3] + 1e-32) + 1) * screen_width / 2,
+    #                   screen_height - (point2_v4[1] / (point2_v4[3] + 1e-32) + 1) * screen_height / 2))
+    #     point3_v4 = (((point3_v4[0] / (point3_v4[3] + 1e-32) + 1) * screen_width / 2,
+    #                   screen_height - (point3_v4[1] / (point3_v4[3] + 1e-32) + 1) * screen_height / 2))
+    #     point4_v4 = (((point4_v4[0] / (point4_v4[3] + 1e-32) + 1) * screen_width / 2,
+    #                   screen_height - (point4_v4[1] / (point4_v4[3] + 1e-32) + 1) * screen_height / 2))
+    #     # tcl_code.append(f"{canvas} coords {tri_poly[1]} {point1_v4[0]} {point1_v4[1]} {point2_v4[0]} {point2_v4[1]} {point3_v4[0]} {point3_v4[1]} {point4_v4[0]} {point4_v4[1]}\n")
+
     def render(self, buffer=None, cache: bool = False) -> bool:
         """really complicated and unreadable code, but REALLY OPTIMIZED for rendering objects with tkinter
         Input is tuple of form:
         ((1,1,1),(1,1,1),(1,2,3))
+
+        This is composed of three different parts.
+        # 1. checks
+        # 2. constants
+        # 3. calculations
         """
-        # print(self.camera_rot)
+
+
+        # 1. checks
+        if self.tkinter_thread is threading.Thread:
+            success=self.tkinter_thread.join()
+            if not success:
+                return False
+
+
         if type(buffer) is not list:
             buffer = self.buffer
         elif cache:
             self.buffer = buffer
+
+
+
+
+
+        # 2. constants
 
         self.sinx = math.sin(self.camera_rot[0] * math.radians(1))
         self.cosx = math.cos(self.camera_rot[0] * math.radians(1))
@@ -277,7 +344,7 @@ class CameraRender:
         near = 1
         far = 1000
 
-        screen_width, screen_height = self.inter.get_width_and_height()
+        screen_width, screen_height, canvas, *polygons = self.inter.get_data_for_rend()
 
         trans_m3x4 = (self.cosx * self.cosy, self.cosx * self.siny * self.sinz - self.sinx * self.cosz,
                         self.cosx * self.siny * self.cosz + self.sinx * self.sinz, - self.camera_pos[0],
@@ -290,16 +357,23 @@ class CameraRender:
             0, 0, far / (far - near), 1,
             0, 0, -near * far / (far - near), 0)
 
-        new_buff = []
-        for point in buffer:
+        point1_v4 = (0,0,0,0)
+        point2_v4 = (0,0,0,0)
+        point3_v4 = (0,0,0,0)
+        point4_v4 = (0,0,0,0)
+        tcl_code=[]
+
+
+        # 3. calculations
+        for tri_poly in zip(buffer,polygons):
             #region triangle render
-            if len(point) != 4:
+            if len(tri_poly[0]) != 4:
                 point1_v4 = optimal_m4x4_times_v4_transform(trans_m3x4,
-                            (point[0][0]-self.camera_pos[0],point[0][1]-self.camera_pos[1],point[0][2]-self.camera_pos[2]))
+                            (tri_poly[0][0][0]-self.camera_pos[0],tri_poly[0][0][1]-self.camera_pos[1],tri_poly[0][0][2]-self.camera_pos[2]))
                 point2_v4 = optimal_m4x4_times_v4_transform(trans_m3x4,
-                            (point[1][0]-self.camera_pos[0],point[1][1]-self.camera_pos[1],point[1][2]-self.camera_pos[2]))
+                            (tri_poly[0][1][0]-self.camera_pos[0],tri_poly[0][1][1]-self.camera_pos[1],tri_poly[0][1][2]-self.camera_pos[2]))
                 point3_v4 = optimal_m4x4_times_v4_transform(trans_m3x4,
-                            (point[2][0]-self.camera_pos[0],point[2][1]-self.camera_pos[1],point[2][2]-self.camera_pos[2]))
+                            (tri_poly[0][2][0]-self.camera_pos[0],tri_poly[0][2][1]-self.camera_pos[1],tri_poly[0][2][2]-self.camera_pos[2]))
 
                 # TODO: clamp them in a way that makes sense perspective wise
                 if (0.0 > point1_v4[2]) or \
@@ -319,25 +393,28 @@ class CameraRender:
                               screen_height - ((point2_v4[1] / (point2_v4[3] + 1e-32) + 1) * screen_height / 2))
                 point3_v4 = ((point3_v4[0] / (point3_v4[3] + 1e-32) + 1) * screen_width / 2,
                               screen_height - ((point3_v4[1] / (point3_v4[3] + 1e-32) + 1) * screen_height / 2))
-                new_buff.append((point1_v4[0], point1_v4[1], point2_v4[0], point2_v4[1], point3_v4[0], point3_v4[1]))
+                tcl_code.append(f"{canvas} coords {tri_poly[1]} {point1_v4[0]} {point1_v4[1]} {point2_v4[0]} {point2_v4[1]} {point3_v4[0]} {point3_v4[1]} {point3_v4[0]} {point3_v4[1]}\n")
+
+                # new_buff.append((point1_v4[0], point1_v4[1], point2_v4[0], point2_v4[1], point3_v4[0], point3_v4[1]))
             # endregion
             #region rectangle render
             else:
                 point1_v4 = optimal_m4x4_times_v4_transform(trans_m3x4,
-                            (point[0][0]-self.camera_pos[0],point[0][1]-self.camera_pos[1],point[0][2]-self.camera_pos[2]))
+                            (tri_poly[0][0][0]-self.camera_pos[0],tri_poly[0][0][1]-self.camera_pos[1],tri_poly[0][0][2]-self.camera_pos[2]))
                 point2_v4 = optimal_m4x4_times_v4_transform(trans_m3x4,
-                            (point[1][0]-self.camera_pos[0],point[1][1]-self.camera_pos[1],point[1][2]-self.camera_pos[2]))
+                            (tri_poly[0][1][0]-self.camera_pos[0],tri_poly[0][1][1]-self.camera_pos[1],tri_poly[0][1][2]-self.camera_pos[2]))
                 point3_v4 = optimal_m4x4_times_v4_transform(trans_m3x4,
-                            (point[2][0]-self.camera_pos[0],point[2][1]-self.camera_pos[1],point[2][2]-self.camera_pos[2]))
+                            (tri_poly[0][2][0]-self.camera_pos[0],tri_poly[0][2][1]-self.camera_pos[1],tri_poly[0][2][2]-self.camera_pos[2]))
                 point4_v4 = optimal_m4x4_times_v4_transform(trans_m3x4,
-                            (point[3][0]-self.camera_pos[0],point[3][1]-self.camera_pos[1],point[3][2]-self.camera_pos[2]))
+                            (tri_poly[0][3][0]-self.camera_pos[0],tri_poly[0][3][1]-self.camera_pos[1],tri_poly[0][3][2]-self.camera_pos[2]))
 
                 # TODO: clamp them in a way that makes sense perspective wise
-                if (0.0 > point1_v4[2]) or \
-                        (0.0 > point2_v4[2]) or \
-                        (0.0 > point2_v4[2]) or \
-                        (0.0 > point4_v4[2]):
-                    continue
+                # if (0.0 > point1_v4[2]) or \
+                #         (0.0 > point2_v4[2]) or \
+                #         (0.0 > point2_v4[2]) or \
+                #         (0.0 > point4_v4[2]):
+                #     continue
+
 
                 point1_v4 = optimal_m4x4_times_v4_camera(proj_m4, point1_v4)
                 point2_v4 = optimal_m4x4_times_v4_camera(proj_m4, point2_v4)
@@ -354,14 +431,16 @@ class CameraRender:
                               screen_height - (point3_v4[1] / (point3_v4[3] + 1e-32) + 1) * screen_height / 2))
                 point4_v4 = (((point4_v4[0] / (point4_v4[3] + 1e-32) + 1) * screen_width / 2,
                               screen_height - (point4_v4[1] / (point4_v4[3] + 1e-32) + 1) * screen_height / 2))
+                tcl_code.append(f"{canvas} coords {tri_poly[1]} {point1_v4[0]} {point1_v4[1]} {point2_v4[0]} {point2_v4[1]} {point3_v4[0]} {point3_v4[1]} {point4_v4[0]} {point4_v4[1]}\n")
 
-                new_buff.append((point1_v4[0], point1_v4[1], point2_v4[0], point2_v4[1],
-                                  point3_v4[0], point3_v4[1], point4_v4[0], point4_v4[1]))
+            # new_buff.append((point1_v4[0], point1_v4[1], point2_v4[0], point2_v4[1],
+            #                  point3_v4[0], point3_v4[1], point4_v4[0], point4_v4[1]))
             # endregion
-        if self.inter.draw(new_buff):
-            return True
-        else:
-            return False
+
+        # self.tkinter_thread=threading.Thread(target=self.inter.draw_code,args=("".join(tcl_code),))
+        # print(self.tkinter_thread)
+        # self.tkinter_thread.start()
+        return True
 
 # unmaintained utest. At the start of development writing this unittest was a life saver it caught so many bug I lost count
 # region uTests
