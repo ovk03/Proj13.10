@@ -33,7 +33,8 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
     def render(self, buffer=None, *_):
         was_rendered=False
         tcl_code=[]
-        return self.render3d(buffer,True)
+        was_rendered = self.render3d(buffer,True)
+        return was_rendered
 
     def render3d(self, buffer=None, cache: bool = False) -> bool:
         """really complicated and unreadable code, but REALLY OPTIMIZED for rendering objects with tkinter
@@ -207,18 +208,17 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
 
             a=int(z/100000)
 
-            # tcl_code.append((z,f"{canvas} coords {i} {point1_v4[0]} {point1_v4[1]} {point2_v4[0]} {point2_v4[1]} {point3_v4[0]} {point3_v4[1]} {point4_v4[0]} {point4_v4[1]}\n"
-            #                 f"{canvas} itemconfigure {i} -fill #{tri[0]:02x}{tri[1]:02x}{tri[2]:002x}\n"))
+            tcl_code.append((z,f"{canvas} coords ¤ {point1_v4[0]} {point1_v4[1]} {point2_v4[0]} {point2_v4[1]} {point3_v4[0]} {point3_v4[1]} {point4_v4[0]} {point4_v4[1]}\n"
+                            f"{canvas} itemconfigure ¤ -fill #{tri[0]:02x}{tri[1]:02x}{tri[2]:002x}\n"))
 
-            tcl_code.append((z,f"{canvas} create poly {point1_v4[0]} {point1_v4[1]} {point2_v4[0]} {point2_v4[1]} "
-                               f"{point3_v4[0]} {point3_v4[1]} {point4_v4[0]} {point4_v4[1]} -tag 3d "
-                               f"-fill #{tri[0]:02x}{tri[1]:02x}{tri[2]:02x}\n"))
+            # tcl_code.append((z,f"{canvas} create poly {point1_v4[0]} {point1_v4[1]} {point2_v4[0]} {point2_v4[1]} "
+            #                    f"{point3_v4[0]} {point3_v4[1]} {point4_v4[0]} {point4_v4[1]} -tag 3d "
+            #                    f"-fill #{tri[0]:02x}{tri[1]:02x}{tri[2]:02x}\n"))
         size=len(tcl_code)
         tcl_code=sorted(tcl_code,reverse=True)
-        tcl_code=[string for _, string in tcl_code]
+        tcl_code=[string[1].replace("¤",str(i)) for i,string in enumerate(tcl_code)]
 
         # for i in range(size+1,POLYGON_COUNT):
         #     tcl_code.append(f"{canvas} coords {i} 0 0 0 0 0 0 0 0\n"
         #                     f"{canvas} itemconfigure {i} -fill #000000\n")
-
         return GameToTK().draw_code("".join(tcl_code))

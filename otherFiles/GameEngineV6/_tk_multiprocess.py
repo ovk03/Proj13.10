@@ -45,7 +45,7 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
         self.root.resizable(False, False)
         self.canvas = tkinter.Canvas(self.root, height=self.height + 4, width=self.width + 4,
                                      highlightbackground="#000000")
-
+        p=[self.canvas.create_polygon(0,0,0,0,0,0,0,0) for i in range(2**12)]
         self.root.protocol("WM_DELETE_WINDOW", self.destroy)
 
 
@@ -126,7 +126,7 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
                 self.render_event.clear()
                 self.waiting_event.set()
 
-                self.canvas.delete("3d")
+                # self.canvas.delete("3d")
 
                 # try render game data
                 code=self.namespace.code
@@ -141,6 +141,7 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
 
                 # main update
                 self.root.dooneevent(_tkinter.ALL_EVENTS)
+                # result in faster input processing
                 self.root.dooneevent(_tkinter.DONT_WAIT)
                 self.root.dooneevent(_tkinter.DONT_WAIT)
 
