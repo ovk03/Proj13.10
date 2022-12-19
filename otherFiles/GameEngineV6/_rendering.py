@@ -101,6 +101,18 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
 
 
         # region confusing math Keep collapsed
+        z_list=[]
+        for tri in buffer:
+            z_list.append(
+        ((tri[0]-c_pos_x) * (tri[0]-c_pos_x) + (tri[1]-c_pos_y) *
+         (tri[1]-c_pos_y) + (tri[2]-c_pos_z) * (tri[2]-c_pos_z)) +
+        ((tri[3]-c_pos_x) * (tri[3]-c_pos_x) + (tri[4]-c_pos_y) *
+         (tri[4]-c_pos_y) + (tri[5]-c_pos_z) * (tri[5]-c_pos_z)) +
+        ((tri[6]-c_pos_x) * (tri[6]-c_pos_x) + (tri[7]-c_pos_y) *
+         (tri[7]-c_pos_y) + (tri[8]-c_pos_z) * (tri[8]-c_pos_z)) +
+        ((tri[9]-c_pos_x) * (tri[9]-c_pos_x) + (tri[10]-c_pos_y) *
+         (tri[10]-c_pos_y) + (tri[11]-c_pos_z) * (tri[11]-c_pos_z)))
+        buffer = [i[1] for i in sorted(zip(z_list,buffer))]
 
         lenght = 0
 
@@ -164,11 +176,6 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
                (0.0 >= point4_v4[2]):
                 continue
 
-            z = ((point1_v4[0]*point1_v4[0]+point1_v4[2]*point1_v4[2]+point1_v4[1]*point1_v4[1])+
-                 (point2_v4[0]*point2_v4[0]+point2_v4[2]*point2_v4[2]+point2_v4[1]*point2_v4[1])+
-                 (point3_v4[0]*point3_v4[0]+point3_v4[2]*point3_v4[2]+point3_v4[1]*point3_v4[1])+
-                 (point4_v4[0]*point4_v4[0]+point4_v4[2]*point4_v4[2]+point4_v4[1]*point4_v4[1]))
-
             point1_v4 = (
                 fov_near_x * point1_v4[0],
                 fov_near_y * point1_v4[1],
@@ -223,10 +230,9 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
                 point2_v4 = (((point2_v4[0]/point2_v4[3]+1)*screen_width/2,(point2_v4[1]/point2_v4[3]+1)*screen_height/2))
                 point3_v4 = (((point3_v4[0]/point3_v4[3]+1)*screen_width/2,(point3_v4[1]/point3_v4[3]+1)*screen_height/2))
                 point4_v4 = (((point4_v4[0]/point4_v4[3]+1)*screen_width/2,(point4_v4[1]/point4_v4[3]+1)*screen_height/2))
-                tcl_code.append((z, f"{canvas} coords ¤ {point1_v4[0]} {point1_v4[1]} {point2_v4[0]} {point2_v4[1]} "
-                                    f"{point3_v4[0]} {point3_v4[1]} {point4_v4[0]} {point4_v4[1]}\n"
-                                    f"{canvas} itemconfigure ¤ -fill #{tri[12]:02x}{tri[13]:02x}{tri[14]:002x}\n"))
-                continue
+                tcl_code.append(f"{canvas} coords {lenght} {point1_v4[0]} {point1_v4[1]} {point2_v4[0]} {point2_v4[1]} "
+                                f"{point3_v4[0]} {point3_v4[1]} {point4_v4[0]} {point4_v4[1]}\n"
+                                f"{canvas} itemconfigure {lenght} -fill #{tri[12]:02x}{tri[13]:02x}{tri[14]:002x}\n")
 
             else: # OH NO THIS IS GONNA GET MESSY
                 # TODO: cull Z  in a way that makes sense perspective wise
@@ -344,9 +350,9 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
                     point2_v4 = ((point2_v4[0]/point2_v4[3]+1)*screen_width/2,(point2_v4[1]/point2_v4[3]+1)*screen_height/2)
                     point3_v4 = ((point3_v4[0]/point3_v4[3]+1)*screen_width/2,(point3_v4[1]/point3_v4[3]+1)*screen_height/2)
                     point4_v4 = ((point4_v4[0]/point4_v4[3]+1)*screen_width/2,(point4_v4[1]/point4_v4[3]+1)*screen_height/2)
-                    tcl_code.append((z,f"{canvas} coords {lenght} {point1_v4[0]} {point1_v4[1]} {point2_v4[0]} {point2_v4[1]} "
+                    tcl_code.append(f"{canvas} coords {lenght} {point1_v4[0]} {point1_v4[1]} {point2_v4[0]} {point2_v4[1]} "
                                     f"{point3_v4[0]} {point3_v4[1]} {point4_v4[0]} {point4_v4[1]}\n"
-                                    f"{canvas} itemconfigure {lenght} -fill #{tri[12]:02x}{tri[13]:02x}{tri[14]:002x}\n"))
+                                    f"{canvas} itemconfigure {lenght} -fill #{tri[12]:02x}{tri[13]:02x}{tri[14]:002x}\n")
 
                 elif clip_count == 1: # In this case we need more polygons to represent this polygon
                     if c1:   #c1 self.log("Z clip #1","COLORBG")
@@ -422,12 +428,12 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
                     point6_v4 = ((point6_v4[0]/point6_v4[3]+1)*screen_width/2,(point6_v4[1]/point6_v4[3]+1)*screen_height/2)
                     point7_v4 = ((point7_v4[0]/point7_v4[3]+1)*screen_width/2,(point7_v4[1]/point7_v4[3]+1)*screen_height/2)
                     point8_v4 = ((point8_v4[0]/point8_v4[3]+1)*screen_width/2,(point8_v4[1]/point8_v4[3]+1)*screen_height/2)
-                    tcl_code.append((z,f"{canvas} coords {lenght} {point1_v4[0]} {point1_v4[1]} {point2_v4[0]} {point2_v4[1]} "
+                    tcl_code.append(f"{canvas} coords {lenght} {point1_v4[0]} {point1_v4[1]} {point2_v4[0]} {point2_v4[1]} "
                                     f"{point3_v4[0]} {point3_v4[1]} {point4_v4[0]} {point4_v4[1]}\n"
-                                    f"{canvas} itemconfigure ¤ -fill #{tri[12]:02x}{tri[13]:02x}{tri[14]:002x}\n"))
-                    tcl_code.append((z,f"{canvas} coords {lenght} {point5_v4[0]} {point5_v4[1]} {point6_v4[0]} {point6_v4[1]} "
+                                    f"{canvas} itemconfigure ¤ -fill #{tri[12]:02x}{tri[13]:02x}{tri[14]:002x}\n")
+                    tcl_code.append(f"{canvas} coords {lenght} {point5_v4[0]} {point5_v4[1]} {point6_v4[0]} {point6_v4[1]} "
                                     f"{point7_v4[0]} {point7_v4[1]} {point8_v4[0]} {point8_v4[1]}\n"
-                                    f"{canvas} itemconfigure {lenght} -fill #{tri[12]:02x}{tri[13]:02x}{tri[14]:002x}\n"))
+                                    f"{canvas} itemconfigure {lenght} -fill #{tri[12]:02x}{tri[13]:02x}{tri[14]:002x}\n")
             # TODO: make this whole section shorter without functions, as they have proven themselves too slo
             # endregion append geom
 
@@ -443,17 +449,8 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
 
         #endregion
 
-        tcl_code=sorted(tcl_code,reverse=True)
-        for i in range(min(len(tcl_code),POLYGON_COUNT)):
-            if self.tri_colors[i] != tcl_code[i][1][-7:]:
-                self.tri_colors[i]=tcl_code[i][1][-7:]
-                tcl_code[i]=tcl_code[i][1].replace("¤",str(i))
-            else:
-                tcl_code[i]=tcl_code[i][1].split("\n")[0].replace("¤", str(i))+"\n"
+        for i in range(len(tcl_code), POLYGON_COUNT):
+            tcl_code.append(f"{canvas} coords {i} 0 0 0 0 0 0 0 0\n")
 
-        for i in range(len(tcl_code),POLYGON_COUNT):
-             tcl_code.append(f"{canvas} coords {i} 0 0 0 0 0 0 0 0\n")
-        # if len(tcl_code) > POLYGON_COUNT:
-        #     tcl_code = tcl_code[(POLYGON_COUNT):-1]
 
-        return GameToTK().draw_code("".join(tcl_code[0:POLYGON_COUNT]))
+        return GameToTK().draw_code("".join(tcl_code))
