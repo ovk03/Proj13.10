@@ -14,8 +14,8 @@ created 10.12.2022 14.59
 
 
 # Dictionary containing the most common 16:9 resolutions, These correspond to specific files in data.
-COMMON_SCREEN_RESOLUTIONS = {640:360,1600:900,1920:1080}
-POLYGON_COUNT = 2**12
+COMMON_SCREEN_RESOLUTIONS = {640:360,1600:900,1920:1080,2560:1440}
+POLYGON_COUNT = 2000
 FRAME_RATE_LOG_FREQUENCY = 100
 DEBUG_GAME_ENGINE = True
 EXTRA_DEBUG_GAME_ENGINE = True
@@ -28,17 +28,17 @@ class EngineType(type):
     is_windows = False
     is_working = True
     run_count = 0
-    debug = True
+    is_debug = True
 
     def __new__(mcs, name, bases, dct):
         obj = type.__new__(mcs, name, bases, dct)
         # simple function to define if audio and mouse control is available
         obj.is_windows = True if platform.platform().lower().__contains__("windows") else False
         obj.run_count = 0
+        obj.is_debug = DEBUG_GAME_ENGINE
         setattr(obj, mcs.log.__name__, mcs.log)
         setattr(obj, mcs.log_func.__name__, mcs.log_func)
         setattr(obj, mcs.link.__name__, mcs.link)
-        obj.debug = DEBUG_GAME_ENGINE
         return obj
 
     def __del__(cls):
@@ -67,6 +67,7 @@ class EngineType(type):
     # @ staticmethod # this way no class reference needs to be passed
     # NVM in need it to be passed
     def log(cls, msg:str, *codes):
+        if not cls.is_debug: return
         try:
             # whether to add link to print line at the end of the log
             should_link = EXTRA_DEBUG_GAME_ENGINE
@@ -82,13 +83,12 @@ class EngineType(type):
                        "GREENBG":42,"YELLOWBG":43,"BLUEBG":44,"WHITEBG":47,"COLORBG":7}
             for color in codes:
                 color=str(color)
-                if cls.debug:
-                    if color in __color.keys():
-                        print(f"\033[{__color[color]}m",end="")
-                    elif len(color) <= 2:
-                        print(f"\033[{color}m",end="")
-                    else:
-                        print(color,end="")
+                if color in __color.keys():
+                    print(f"\033[{__color[color]}m",end="")
+                elif len(color) <= 2:
+                    print(f"\033[{color}m",end="")
+                else:
+                    print(color,end="")
             print(str(msg)+"\033[0m",end="")
 
             # link or not to link

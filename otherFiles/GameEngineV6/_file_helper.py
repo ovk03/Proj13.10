@@ -1,5 +1,8 @@
 """functions to convert files to game data"""
+
 import pathlib
+from .structures import tri_normal
+
 """Onni Kolkka 
 150832953 (student number)
 created 16.12.2022 13.32
@@ -32,7 +35,14 @@ def obj_parse(path):
                 for f in face:
                     f=f.split("/")[0]
                     final_polygon.extend(vertices[int(f)-1])
-                polygons.append((*mats[current_mat],*final_polygon))
+                while len(final_polygon)<12:
+                    print("filling tri to quad")
+                    final_polygon.extend(final_polygon[0:3])
+
+                normal = tri_normal(tuple(final_polygon[0:9]))
+                polygons.append((*final_polygon[0:12],*mats[current_mat],*normal))
+
+        print(len(polygons[0]))
         return polygons
 
 # designed for blender exported .mtl files. May not be compatible with every .mtl file
