@@ -14,6 +14,7 @@ def obj_parse(path):
     with open(path) as file:
         string=file.read()
         vertices=[]
+        normals=[]
         polygons=[]
         mats={}
         current_mat=""
@@ -23,24 +24,30 @@ def obj_parse(path):
             if i[0:2] == "v ":
                 coords=i.split(" ")
                 vertices.append((float(coords[1]),float(coords[2]),float(coords[3])))
-            elif len(vertices)==0:
-                continue
-            elif i[0:6] == "usemtl":
-                current_mat = i.split()[1]
-            elif current_mat == "":
-                continue
             elif i[0]=="f":
                 face=i.split(" ")[1:]
                 final_polygon=[]
+                normal=(0,0,0)
                 for f in face:
-                    f=f.split("/")[0]
-                    final_polygon.extend(vertices[int(f)-1])
+                    f=f.split("/")
+                    final_polygon.extend(vertices[int(f[0])-1])
+                    normal=(normals[int(f[2])-1][0]+normal[0],
+                            normals[int(f[2])-1][1]+normal[1],
+                            normals[int(f[2])-1][2]+normal[2])
+
                 while len(final_polygon)<12:
                     print("filling tri to quad")
                     final_polygon.extend(final_polygon[0:3])
 
-                normal = tri_normal(tuple(final_polygon[0:9]))
+                if normal[0]==0 and normal[1] == 0 and normal[2] == 0:
+                    normal = tri_normal(tuple(final_polygon[0:9]))
+
                 polygons.append((*final_polygon[0:12],*mats[current_mat],*normal))
+            elif i[0:2] == "vn":
+                vector=i.split(" ")
+                normals.append((float(vector[1]),float(vector[2]),float(vector[3])))
+            elif i[0:6] == "usemtl":
+                current_mat = i.split()[1]
 
         print(len(polygons[0]))
         return polygons

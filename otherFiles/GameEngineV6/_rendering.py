@@ -114,7 +114,7 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
          (tri[10]-c_pos_y) + (tri[11]-c_pos_z) * (tri[11]-c_pos_z)))
         buffer = [i[1] for i in sorted(zip(z_list,buffer))]
 
-        lenght = 0
+        lenght = POLYGON_COUNT-1
 
         # Each calculation inside this loop is run approximately 1e9 times in only 20 seconds
         # For that reason I have to use all possible optimizations, even though it wont result in readable code
@@ -123,9 +123,9 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
             wouldn't be sufficient in explaining this and that would increase the rowcount further"""
 
             # TODO: backface culling
-            if cam_fwd_vec[0]*tri[15]+ \
-               cam_fwd_vec[1]*tri[16]+ \
-               cam_fwd_vec[2]*tri[17] > 0:
+            if (tri[0]-c_pos_x)*tri[15]+ \
+               (tri[1]-c_pos_y)*tri[16]+ \
+               (tri[2]-c_pos_z)*tri[17] >= 0:
                 continue
 
             # region confusing math Keep collapsed
@@ -437,19 +437,19 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
             # TODO: make this whole section shorter without functions, as they have proven themselves too slo
             # endregion append geom
 
-            if lenght == POLYGON_COUNT-1:
+            if lenght == 0:
                 if self.msg_del % 100 == 0:
                     self.log(f"Polygons on screen ({len(tcl_code)}) exceed polygon pool of {POLYGON_COUNT}"
                              , "YELLOW","COLORBG")
                 self.msg_del += 1
                 break
-            lenght+=1
+            lenght-=1
             #endregion
 
 
         #endregion
 
-        for i in range(len(tcl_code), POLYGON_COUNT):
+        for i in range(0, POLYGON_COUNT-len(tcl_code)):
             tcl_code.append(f"{canvas} coords {i} 0 0 0 0 0 0 0 0\n")
 
 
