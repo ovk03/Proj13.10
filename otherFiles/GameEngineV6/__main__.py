@@ -16,6 +16,7 @@ created 10.12.2022 14.59
 # Dictionary containing the most common 16:9 resolutions, These correspond to specific files in data.
 COMMON_SCREEN_RESOLUTIONS = {640:360,1600:900,1920:1080,2560:1440}
 POLYGON_COUNT = 2000
+RENDER_CORE_COUNT = 1
 FRAME_RATE_LOG_FREQUENCY = 100
 DEBUG_GAME_ENGINE = True
 EXTRA_DEBUG_GAME_ENGINE = True

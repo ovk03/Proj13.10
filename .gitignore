@@ -129,5 +129,7 @@ dmypy.json
 .pyre/
 
 testStats
+unittest
 .idea
 ~$ER
+/~$ER MANUAL.docx

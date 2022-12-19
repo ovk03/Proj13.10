@@ -11,6 +11,8 @@ It will also send  <b><strong>username</strong></b>  and  <b><strong>hashed pass
 By running the \_\_main__.py or \_\_init__.py file in "GameEngine" module, it'll execute unittest and an demo.
 
 ###### Here is a link to dev document <link>https://app.milanote.com/1P40E21cW3dlbd?p=hk5YCq0K6sJ </link> <br> Here is a link to github repository <link>https://github.com/ovk03/Proj13.10 </link>
+###### Also this module contains USER MANUAL 
+
 this project contains a lot of files (all made by me). 
 Before trying to dive into the inner workings of this project 
 i would recommend taking a look at the design document, 
