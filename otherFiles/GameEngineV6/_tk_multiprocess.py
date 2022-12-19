@@ -45,7 +45,7 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
         self.root.resizable(False, False)
         self.canvas = tkinter.Canvas(self.root, height=self.height + 4, width=self.width + 4,
                                      highlightbackground="#000000")
-
+        p = [self.canvas.create_polygon(0,0,0,0,0,0,0,0) for i in range(POLYGON_COUNT)]
         self.root.protocol("WM_DELETE_WINDOW", self.destroy)
 
 
@@ -68,7 +68,8 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
         self.init_TK()
 
         # set correct resolution
-        if self.debug:
+        print(self.is_debug)
+        if self.is_debug:
             self.set_debug_res()
         else:
             self.set_best_res()
@@ -90,6 +91,8 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
         self.t = -time.perf_counter()
 
         i=0
+        tot_time=0
+        proc_time=0
         # checks if should stop updating TK
         while not self.stop_event.is_set() and self.root.winfo_exists():
             # calculates mouse input
@@ -103,7 +106,7 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
                 self._last_cursor_x = self.root.winfo_pointerx()
                 self._last_cursor_y = self.root.winfo_pointery()
 
-            elif self.control_mouse_out_of_focus:
+            elif self.control_mouse_out_of_focus or not self.is_windows:
                 self.namespace.mouse_pos_x += self.root.winfo_pointerx()-self._last_cursor_x
                 self.namespace.mouse_pos_y += self.root.winfo_pointery()-self._last_cursor_y
                 self._last_cursor_x = self.root.winfo_pointerx()
@@ -113,9 +116,8 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
             if self.command_event.is_set():
                 if self.namespace.exec_command.strip() == "":
                     continue
-                print("AAAAAAAAAAAAAAAAA")
-                self.link()
                 self.log(self.namespace.exec_command,"YELLOW","COLORBG")
+                self.link()
                 self.command_event.clear()
                 self.namespace.exec_command=""
                 exec(self.namespace.exec_command)
@@ -123,10 +125,11 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
 
             if self.render_event.is_set():
                 #clear flags
+                proc_time-=time.perf_counter()
                 self.render_event.clear()
                 self.waiting_event.set()
 
-                self.canvas.delete("3d")
+                # self.canvas.delete("3d")
 
                 # try render game data
                 code=self.namespace.code
@@ -140,16 +143,20 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
                         self.destroy()
 
                 # main update
-                self.root.dooneevent(_tkinter.ALL_EVENTS)
+                # self.root.dooneevent(_tkinter.ALL_EVENTS)
+                # result in faster input processing, but slower fps
                 self.root.dooneevent(_tkinter.DONT_WAIT)
-                self.root.dooneevent(_tkinter.DONT_WAIT)
+                # self.root.dooneevent(_tkinter.DONT_WAIT)
 
                 # logging framerae
                 self._avrg_time = (self.t + time.perf_counter()) * (1 - .9) + self._avrg_time * .9
+                tot_time+=self.t + time.perf_counter()
                 i+=1
+                proc_time += time.perf_counter()
                 if(i%FRAME_RATE_LOG_FREQUENCY==0):
                     self.log(f"FPS: {1 / self._avrg_time:.1f}","GREEN")
                 self.t = -time.perf_counter()
+        self.log(f"time rendering: {proc_time:.3f}. time total: {tot_time:.3f}","CYAN")
 
     # the ",*_" is for discarding unwanted args.
     def destroy(self, *_):
@@ -164,7 +171,6 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
         self.key_event.set()
 
     def reg_key_down(self, args):
-        print(args)
         if self._key_list.get(args.keysym, False):
             return
         self._key_list[args.keysym]=True
@@ -204,6 +210,7 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
     def set_best_res(self,res=None):
         """Picks the best resolution. Set res to max wanted res"""
         res = res or self.root.winfo_screenwidth()
+        print(res)
         if COMMON_SCREEN_RESOLUTIONS.__contains__(res):
 
             # sets size and syncs changes to rendering

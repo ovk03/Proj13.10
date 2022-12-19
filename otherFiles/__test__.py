@@ -162,8 +162,8 @@ def test():
         print("count of polygons:")
         print(len(grid_test_10k()))
         cam().camera_rot=(0,90,0)
-        # inter.render(grid_test_2k(),cache=True)
         cam().render(obj_parse(pathlib.Path(__file__).absolute().parent.joinpath("untitled.obj")))
+        # cam().render([(0,0,0,10,0,10,10,0,-10,-10,0,-10,-10,0,10),(0,0,0,10,0,10,10,0,-10,-10,0,-10,-10,0,10)])
         avrg_time=0.02
         t = -time.perf_counter()
         lerp_val=0.99
@@ -177,7 +177,6 @@ def test():
             t = -time.perf_counter()
             cam().camera_rot=((GameToTK().namespace.mouse_pos_y-last_y)/10,
                               -(GameToTK().namespace.mouse_pos_x-last_x)/10,0)
-
             y_input = 1 if GameToTK().get_key('w') else 0
             y_input-= 1 if GameToTK().get_key('s') else 0
             x_input = 1 if GameToTK().get_key('a') else 0
@@ -185,12 +184,12 @@ def test():
             z_input = 1 if GameToTK().get_key('q') else 0
             z_input-= 1 if GameToTK().get_key('e') else 0
             if(GameToTK().get_key("Shift_L")):
-                x_input*=5
-                y_input*=5
-                z_input*=5
+                x_input*=15
+                y_input*=15
+                z_input*=15
             cam().camera_pos=v3_plus(cam().camera_pos,
                              structures.reversed_rotation_matrix(cam().camera_rot,
-                             (x_input*delta_t*3,z_input,y_input*delta_t*3)))
+                             (x_input*delta_t,z_input*delta_t,y_input*delta_t)))
 
             # inter.camera_pos=(0,0,-15)
             # print(inter.camera_rot)
