@@ -1,8 +1,5 @@
 """manages interactions with tkinter"""
 
-import multiprocessing
-import time
-
 from ._tk_multiprocess import *
 from .__main__ import *
 
@@ -10,7 +7,6 @@ from .__main__ import *
 150832953 (student number)
 created 10.12.2022 15.06
 """
-
 
 
 class GameToTK(metaclass=EngineTypeSingleton):
@@ -33,6 +29,8 @@ class GameToTK(metaclass=EngineTypeSingleton):
         self.namespace.mouse_pos_y = 0
         self.namespace.width = 0
         self.namespace.height = 0
+        self.namespace.offset_width = 0
+        self.namespace.offset_height = 0
 
         self.namespace.key_list = {}
         self.namespace.code = ""
@@ -59,9 +57,13 @@ class GameToTK(metaclass=EngineTypeSingleton):
 
     def get_key(self,keycode):
         if self.key_event.is_set():
-            self._key_list=self.namespace.key_list
+            self._key_list = self.namespace.key_list
             self.key_event.clear()
         return self._key_list.get(keycode,False)
+
+    def get_mouse(self):
+
+        return (self.namespace.mouse_pos_y,self.namespace.mouse_pos_x)
 
     def draw_code(self, code: str):
         """ draw next frame """
@@ -81,7 +83,7 @@ class GameToTK(metaclass=EngineTypeSingleton):
 
         # try:
         #     if code[0:4] == "None":
-        #         # TODO: figure out why removing this makes the WHOOLE thing not work
+        #         # TODO: figure out why removing this makes the WHOLE thing not work
         #         # TODO: I cant even replace it with another check
         #
         #         # FIXME: never figured out what caused "self.root.winfo_exists()" to magically fix my project

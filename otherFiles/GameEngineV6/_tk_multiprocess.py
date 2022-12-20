@@ -35,6 +35,8 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
         self._avrg_time = 0.02
         self._last_cursor_x = 0
         self._last_cursor_y = 0
+        self.canvas_width=0
+        self.canvas_height=0
         self._key_list = {}
 
     def init_TK(self):
@@ -42,37 +44,46 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
         self.root = tkinter.Tk()
         self.root.configure(bg="#000000")
         self.root.title("3dEngine à la noob")
-        self.root.resizable(False, False)
-        self.canvas = tkinter.Canvas(self.root, height=self.height + 4, width=self.width + 4,
-                                     highlightbackground="#000000")
+        # self.root.resizable(False, False)
+        self.canvas = tkinter.Canvas(self.root, highlightbackground="#000000")
         p = [self.canvas.create_polygon(0,0,0,0,0,0,0,0) for i in range(POLYGON_COUNT)]
         self.root.protocol("WM_DELETE_WINDOW", self.destroy)
 
 
         # TODO: remove test label
         self.canvas.create_text(100, 100, text="TEST")
-        print(pathlib.Path(__file__).parent.joinpath("Untitled.png"))
         photo = tkinter.PhotoImage(file=pathlib.Path(__file__).parent.joinpath("Untitled.png"))
         self.canvas.create_image(100, 100, image=photo)
 
 
         # default bindings
+
+
         self.root.bind('<Escape>',self.toggle_cursor)
         self.root.bind('<F11>',self.toggle_fullscreen)
-        self.root.bind('<KeyPress>',self.reg_key_down)
-        self.root.bind('<KeyRelease>',self.reg_key_up)
+        if not self.is_windows or USE_TK_INPUT_ONLY:
+            # TODO: TKinter will spam these functions until the game will freeze. This is a big disadvantage for non windows
+            self.root.bind('<KeyPress>',self.reg_key_down)
+            self.root.bind('<ButtonPress-1>',self.reg_button_down)
+            self.root.bind('<ButtonPress-2>',self.reg_button_down)
+            self.root.bind('<ButtonPress-3>',self.reg_button_down)
+            self.root.bind('<KeyRelease>',self.reg_key_up)
+            self.root.bind('<ButtonRelease-1>',self.reg_button_up)
+            self.root.bind('<ButtonRelease-2>',self.reg_button_up)
+            self.root.bind('<ButtonRelease-3>',self.reg_button_up)
+
+        # set correct resolution
+        if self.is_debug:
+            self.set_debug_res()
+        else:
+            self.set_best_res()
+        self.root.update()
+        self.root.overrideredirect(True)
 
     def __init__(self,*args):
 
         self.init_variables(*args)
         self.init_TK()
-
-        # set correct resolution
-        print(self.is_debug)
-        if self.is_debug:
-            self.set_debug_res()
-        else:
-            self.set_best_res()
 
         # enter the "mainloop"
         self.log("Entering Mainloop()","GREEN","UNDERLINE")
@@ -89,7 +100,8 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
 
     def main_loop(self, *_):
         self.t = -time.perf_counter()
-
+        for i in range(20):
+            self.root.dooneevent(_tkinter.WINDOW_EVENTS)
         i=0
         tot_time=0
         proc_time=0
@@ -142,11 +154,8 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
                         logging.getLogger().exception(e)
                         self.destroy()
 
-                # main update
-                # self.root.dooneevent(_tkinter.ALL_EVENTS)
-                # result in faster input processing, but slower fps
-                self.root.dooneevent(_tkinter.DONT_WAIT)
-                # self.root.dooneevent(_tkinter.DONT_WAIT)
+                # self.root.dooneevent(0)
+                self.root.update()
 
                 # logging framerae
                 self._avrg_time = (self.t + time.perf_counter()) * (1 - .9) + self._avrg_time * .9
@@ -165,65 +174,89 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
         self.root.destroy()
         del self
 
+    # region input
+
     def reg_key_up(self, args):
-        self._key_list[args.keysym]=False
-        self.namespace.key_list=self._key_list
+        if len(args.keysym) == 1:
+            key = args.keysym.lower()
+        else:
+            key = args.keysym
+        self._key_list[key] = False
+        self.namespace.key_list = self._key_list
         self.key_event.set()
 
     def reg_key_down(self, args):
-        if self._key_list.get(args.keysym, False):
+        if len(args.keysym) == 1:
+            key = args.keysym.lower()
+        else:
+            key = args.keysym
+        if self._key_list.get(key, False):
             return
-        self._key_list[args.keysym]=True
-        self.namespace.key_list=self._key_list
+        self._key_list[key] = True
+        self.namespace.key_list = self._key_list
         self.key_event.set()
 
-    # the ",*_" is for discarding unwanted args.
+    def reg_button_up(self, args):
+        key = "Mouse"+str(args.num)
+        self._key_list[key] = False
+        self.namespace.key_list = self._key_list
+        self.key_event.set()
+
+    def reg_button_down(self, args):
+        key = "Mouse"+str(args.num)
+        if self._key_list.get(key, False):
+            return
+        self._key_list[key] = True
+        self.namespace.key_list = self._key_list
+        self.key_event.set()
+
+    # endregion
+
+    # *_ discards args
     def toggle_cursor(self,*_):
-        # FIXME possible to bug tkinter out of taskbar, if called WAY too much in sort period
         self._cursor_lock = not self._cursor_lock
         if self._cursor_lock:
             self.root.config(cursor="none")
-            self.toggle_bar_off()
+            # self.toggle_bar_off()
         else:
             self.root.config(cursor="")
-            self.toggle_bar_on()
+            # self.toggle_bar_on()
 
-    # the ",*_" is for discarding unwanted args.
-    def toggle_fullscreen(self, *_):
-        # FIXME possible to bug tkinter out of taskbar, if called WAY too much in sort period
-        self._fullscreen = not self._fullscreen
+    def update_fullscreen(self):
         if self._fullscreen:
-            self.set_best_res()
-            self.toggle_bar_on()
+            self.root.overrideredirect(False)
             self.root.attributes("-fullscreen", True)
+            self.root.overrideredirect(True)
         else:
-            self.set_debug_res()
+            self.root.overrideredirect(False)
+            self.root.attributes("-fullscreen", False)
+            self.root.overrideredirect(True)
+        self._realign_elements()
 
-    def toggle_bar_on(self):
-        """toggles top bar of tk while not in fullscreen"""
-        self.root.overrideredirect(False)
-
-    def toggle_bar_off(self):
-        """toggles top bar of tk while not in fullscreen"""
-        self.root.overrideredirect(True)
+    # *_ discards args
+    def toggle_fullscreen(self,*_):
+        self._fullscreen = not self._fullscreen
+        self.update_fullscreen()
 
     def set_best_res(self,res=None):
         """Picks the best resolution. Set res to max wanted res"""
         res = res or self.root.winfo_screenwidth()
-        print(res)
         if COMMON_SCREEN_RESOLUTIONS.__contains__(res):
 
             # sets size and syncs changes to rendering
             self.root.geometry(F"{res}x{COMMON_SCREEN_RESOLUTIONS[res]}")
+            self.canvas_width=res
+            self.canvas_height=COMMON_SCREEN_RESOLUTIONS[res]
 
             if res == self.root.winfo_screenwidth():
-                self._fullscreen = True
-                self.root.attributes("-fullscreen", True)
-                self._realign_elements(self.root.winfo_screenwidth(), self.root.winfo_screenheight())
+                self._fullscreen=  True
+                self.update_fullscreen()
+                self._realign_elements()
             else:
                 self._fullscreen = False
-                self.root.attributes("-fullscreen", False)
-                self._realign_elements(res, COMMON_SCREEN_RESOLUTIONS[res])
+                self.update_fullscreen()
+                self._realign_elements()
+            self.canvas.configure(width=self.canvas_width,height=self.canvas_height)
         else:
             # goes through the resolutions and selects the biggest, that won't go over screen
             current_best=640
@@ -233,23 +266,30 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
 
             # sets size and syncs changes to rendering
             self.root.geometry(F"{current_best}x{COMMON_SCREEN_RESOLUTIONS[current_best]}")
+            self.canvas_width=current_best
+            self.canvas_height=COMMON_SCREEN_RESOLUTIONS[current_best]
             self._fullscreen = False
-            self.root.attributes("-fullscreen",False)
-            self._realign_elements(current_best, COMMON_SCREEN_RESOLUTIONS[current_best])
+            self.update_fullscreen()
+            self.canvas.configure(width=self.canvas_width,height=self.canvas_height)
+            self._realign_elements()
 
-    def set_debug_res(self,res=None):
+
+    def set_debug_res(self):
         """sets resolution to one level lower than best res"""
-        if (self._cursor_lock):
-            self.toggle_bar_off()
         self.set_best_res(self.root.winfo_screenwidth()-1)
 
-    def _realign_elements(self, width, height):
-        self.root.dooneevent(0)
+    def _realign_elements(self):
         self.canvas.config(width=self.root.winfo_width()+4,height=self.root.winfo_height()+4)
-        self.namespace.width = self.root.winfo_width()+4
-        self.namespace.height = self.root.winfo_height()+4
 
+        self.namespace.width = self.root.winfo_width()
+        self.namespace.height = self.root.winfo_height()
+        self.namespace.offset_width = int((self.root.winfo_screenwidth() -self.root.winfo_width())/ 2)
+        self.namespace.offset_height= int((self.root.winfo_screenheight()-self.root.winfo_height())/2)
+
+        self.root.geometry(f"+{int((self.root.winfo_width()-self.root.winfo_screenwidth())/ 4)}"
+                           f"+{int((self.root.winfo_height()-self.root.winfo_screenheight())/4)}")
+        self.log(self.root.geometry)
+        self.canvas.place(x=int(self.canvas.winfo_width()-self.root.winfo_width())/2,
+                          y=int(self.canvas.winfo_height()-self.root.winfo_height())/2)
+        self.canvas.configure(width=self.canvas_width, height=self.canvas_height)
         # TODO: better way to hide edges of the canvas
-        self.canvas.place(x=int((width - self.root.winfo_width())/4)-2,
-                          y=int((height- self.root.winfo_height())/4)-2)
-        self.root.focus()

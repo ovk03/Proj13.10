@@ -11,7 +11,7 @@ import math
 import unittest
 import copy
 import threading
-from ._tk_inter_inter import *
+from ._game_to_tk import *
 from .structures import *
 import time
 

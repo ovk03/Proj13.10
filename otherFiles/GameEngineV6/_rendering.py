@@ -1,7 +1,7 @@
 """Optimized to the maximum. """
 
 import threading
-from ._tk_inter_inter import *
+from ._game_to_tk import *
 from .structures import *
 from .__main__ import EngineTypeSingleton
 import time
@@ -451,6 +451,5 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
 
         for i in range(0, POLYGON_COUNT-len(tcl_code)):
             tcl_code.append(f"{canvas} coords {i} 0 0 0 0 0 0 0 0\n")
-
 
         return GameToTK().draw_code("".join(tcl_code))

@@ -4,7 +4,8 @@ import sys
 from GameEngineV6 import *
 from GameEngineV6 import structures
 from GameEngineV6._rendering import *
-from GameEngineV6._tk_inter_inter import *
+from GameEngineV6._game_to_tk import *
+from GameEngineV6._input import *
 import time
 import math
 import pstats
@@ -17,7 +18,6 @@ import cProfile
 150832953 (student number)
 created 11.12.2022 20.53
 """
-
 
 def tri(pos):
     vert_top=(pos[0],pos[1]+0.5,pos[2])
@@ -153,14 +153,11 @@ def grid_test_10k():
             raise TypeError
     return l
 
-
 def test():
     try:
         cam=lambda: CameraRenderOptimized()
         i=0
 
-        print("count of polygons:")
-        print(len(grid_test_10k()))
         cam().camera_rot=(0,90,0)
         cam().render(obj_parse(pathlib.Path(__file__).absolute().parent.joinpath("untitled.obj")))
         # cam().render([(0,0,0,10,0,10,10,0,-10,-10,0,-10,-10,0,10),(0,0,0,10,0,10,10,0,-10,-10,0,-10,-10,0,10)])
@@ -170,20 +167,27 @@ def test():
         last_y=GameToTK().namespace.mouse_pos_y
         last_x=GameToTK().namespace.mouse_pos_x
         cam().camera_pos=(0,2.5,-5)
+        tot=0
         while cam().render():
             i += (t+time.perf_counter())*20
             delta_t=t+time.perf_counter()
+            tot+=delta_t
             avrg_time=(delta_t)*(1-lerp_val)+avrg_time*lerp_val
             t = -time.perf_counter()
             cam().camera_rot=((GameToTK().namespace.mouse_pos_y-last_y)/10,
-                              -(GameToTK().namespace.mouse_pos_x-last_x)/10,0)
-            y_input = 1 if GameToTK().get_key('w') else 0
-            y_input-= 1 if GameToTK().get_key('s') else 0
-            x_input = 1 if GameToTK().get_key('a') else 0
-            x_input-= 1 if GameToTK().get_key('d') else 0
-            z_input = 1 if GameToTK().get_key('q') else 0
-            z_input-= 1 if GameToTK().get_key('e') else 0
-            if(GameToTK().get_key("Shift_L")):
+                              -(GameToTK().namespace.mouse_pos_x-last_x)/10+tot,0)
+            # y_input = 1 if GameToTK().get_key('w') else 0
+            # y_input-= 1 if GameToTK().get_key('s') else 0
+            # x_input = 1 if GameToTK().get_key('a') else 0
+            # x_input-= 1 if GameToTK().get_key('d') else 0
+            # z_input = 1 if GameToTK().get_key('q') else 0
+            y_input = 1 if Inp().key('w') else 0
+            y_input-= 1 if Inp().key('s') else 0
+            x_input = 1 if Inp().key('a') else 0
+            x_input-= 1 if Inp().key('d') else 0
+            z_input = 1 if Inp().key('q') else 0
+            z_input-= 1 if Inp().key('e') else 0
+            if(Inp().key("Shift_L")):
                 x_input*=15
                 y_input*=15
                 z_input*=15

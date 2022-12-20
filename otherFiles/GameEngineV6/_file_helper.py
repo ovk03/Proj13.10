@@ -36,7 +36,6 @@ def obj_parse(path):
                             normals[int(f[2])-1][2]+normal[2])
 
                 while len(final_polygon)<12:
-                    print("filling tri to quad")
                     final_polygon.extend(final_polygon[0:3])
 
                 if normal[0]==0 and normal[1] == 0 and normal[2] == 0:
@@ -48,8 +47,6 @@ def obj_parse(path):
                 normals.append((float(vector[1]),float(vector[2]),float(vector[3])))
             elif i[0:6] == "usemtl":
                 current_mat = i.split()[1]
-
-        print(len(polygons[0]))
         return polygons
 
 # designed for blender exported .mtl files. May not be compatible with every .mtl file
@@ -66,5 +63,4 @@ def mtl_parse(path):
                 mats[current_mat]=(int(float(i.split()[1])*216),
                                    int(float(i.split()[2])*216),
                                    int(float(i.split()[3])*216))
-        print(mats)
         return mats

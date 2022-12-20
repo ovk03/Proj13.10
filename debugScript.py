@@ -8,6 +8,7 @@ import tkinter
 from collections import namedtuple
 from copy import copy
 import queue
+from ctypes import windll
 
 #region test 1
 Colour = namedtuple('Colour', 'r,g,b')
@@ -174,17 +175,8 @@ def main2():
 # endregion
 
 # region test 3
-class test3:
-    def tk(self):
-        self.root.update()
-    def __init__(self):
-        self.root=tkinter.Tk()
-        t=threading.Thread(target=self.thread,self.tk)
-        t.start()
-    def thread(self,func):
-        while True:
-            func()
-
+def input():
+    pass
 
 #endregion
 

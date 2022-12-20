@@ -15,10 +15,11 @@ created 10.12.2022 14.59
 
 # Dictionary containing the most common 16:9 resolutions, These correspond to specific files in data.
 COMMON_SCREEN_RESOLUTIONS = {640:360,1600:900,1920:1080,2560:1440}
-POLYGON_COUNT = 2000
+POLYGON_COUNT = 1000
 FRAME_RATE_LOG_FREQUENCY = 100
 DEBUG_GAME_ENGINE = True
 EXTRA_DEBUG_GAME_ENGINE = True
+USE_TK_INPUT_ONLY = True
 
 class EngineType(type):
     """This is a metaclass used by Everything.
@@ -38,6 +39,7 @@ class EngineType(type):
         obj.is_debug = DEBUG_GAME_ENGINE
         setattr(obj, mcs.log.__name__, mcs.log)
         setattr(obj, mcs.log_func.__name__, mcs.log_func)
+        setattr(obj, "print", mcs.log_func)
         setattr(obj, mcs.link.__name__, mcs.link)
         return obj
 
@@ -132,7 +134,6 @@ class EngineTypeSingleton(EngineType):
     def __call__(cls, *args, **kwargs):
         # does class instance exist yet?
         if cls not in cls.singletons:
-            print("meta: creating new singleton")
             cls.singletons[cls] = super(EngineType, cls).__call__(*args, **kwargs)
 
         # is that instance working?  this is a case that shouldn't happen often
