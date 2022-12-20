@@ -24,7 +24,7 @@ if __name__ == "__main__":
         print("\33[0m\n\33[91m\33[7m\33[1m!!!SOMETHINGS WRONG!!! (╯°□°）╯︵ ┻━┻  \33[0m")
         quit()
 
-    if str(input("Shall I run a test scene for this module? (y/n)")).lower().strip() != "y":
+    if str(input("\n\33[4mShall I run a test scene for this module? (y/n) ")).lower().strip() != "y":
         quit()
 
     # import test without relative path
