@@ -81,6 +81,7 @@ WIN_KEY = {
     "F10":0x79,
     "F11":0x7A,
     "F12":0x7B}
+
 # short classname to save space on the module users end
 class Inp(metaclass=EngineTypeSingleton):
     """Centralized class containing inputs from both keyboard and mouse"""
@@ -96,58 +97,71 @@ class Inp(metaclass=EngineTypeSingleton):
         """tells inputs that new update tick has started"""
 
     # https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
-    def key_pos(self,key):
+    @ staticmethod
+    def key_pos(key):
         """Returns int of key state (0 = off 1 = on 2= pressed now, -1 = released now)"""
 
         # read the keyboard
-        if self.is_windows and not USE_TK_INPUT_ONLY:
+        if Inp().is_windows and not USE_TK_INPUT_ONLY:
             down = windll.user32.GetAsyncKeyState(WIN_KEY[key]) != 0
         else:
             down = GameToTK().get_key(key)
 
         # if key state hasn't changed since last tick, return
         # alternatively if time changed is now, we know key was releasedd
-        if self._key_list.get(key,False) == down and not self._change_time.get(key,0)==time.time():
-            self._key_list[key] = down
-            self._change_time[key]=time.time()
+        if Inp()._key_list.get(key,False) == down and not Inp()._change_time.get(key,0)==time.time():
+            Inp()._key_list[key] = down
+            Inp()._change_time[key]=time.time()
             return int(down)
 
         # we know key was released or pressed between frames
         elif down:
-            self._key_list[key] = down
+            Inp()._key_list[key] = down
             return 2
         else:
-            self._key_list[key] = down
+            Inp()._key_list[key] = down
             return -1
 
-    def key_up(self,key):
+    @staticmethod
+    def key_up(key):
         """key was released"""
-        return self.key_pos(key)==-1
+        return Inp().key_pos(key)==-1
 
-    def key_dwn(self,key):
+    @staticmethod
+    def key_dwn(key):
         """key was pressed"""
-        return self.key_pos(key)==2
+        return Inp().key_pos(key)==2
 
-    def key(self,key):
+    @staticmethod
+    def key(key):
         """key is held down"""
-        return self.key_pos(key)>0
+        return Inp().key_pos(key)>0
 
+    @staticmethod
+    def mouse_coords(*args):
+        val=(0,0)
+        if Inp().is_windows and not USE_TK_INPUT_ONLY:
+            # TODO: implement windll based input
+            Inp().log(windll.user32.GetMousePos(),"BOLD")
+        else:
+            val= GameToTK().get_mouse_coords()
 
-    def mouse(self):
-        if self.is_windows and not USE_TK_INPUT_ONLY:
+        if len(args) == 1:
+            if args[0].lower == "x": return val[0]
+            elif args[0].lower == "y": return val[1]
+        else: return val
+
+    @staticmethod
+    def mouse(*args):
+        val=(0,0)
+        if Inp().is_windows and not USE_TK_INPUT_ONLY:
+            Inp().log(windll.user32.GetCursorPos(),"BOLD","YELLOW")
+            # TODO: implement windll based input
             pass
         else:
-            return GameToTK.get_mouse()
+            val= GameToTK().get_mouse()
 
-    def mouse_x(self):
-        if self.is_windows and not USE_TK_INPUT_ONLY:
-            pass
-        else:
-            return GameToTK.get_mouse()[0]
-
-    def mouse_y(self):
-        if self.is_windows and not USE_TK_INPUT_ONLY:
-            pass
-        else:
-            return GameToTK.get_mouse()[1]
-
+        if len(args) == 1:
+            if args[0].lower() == "x": return val[0]
+            elif args[0].lower() == "y": return val[1]
+        else: return val

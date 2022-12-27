@@ -44,7 +44,7 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
         self.root = tkinter.Tk()
         self.root.configure(bg="#000000")
         self.root.title("3dEngine à la noob")
-        # self.root.resizable(False, False)
+        self.root.resizable(False, False)
         self.canvas = tkinter.Canvas(self.root, highlightbackground="#000000")
         p = [self.canvas.create_polygon(0,0,0,0,0,0,0,0) for i in range(POLYGON_COUNT)]
         self.root.protocol("WM_DELETE_WINDOW", self.destroy)
@@ -72,13 +72,14 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
             self.root.bind('<ButtonRelease-2>',self.reg_button_up)
             self.root.bind('<ButtonRelease-3>',self.reg_button_up)
 
+        self.root.update()
+        self.root.overrideredirect(True)
         # set correct resolution
         if self.is_debug:
             self.set_debug_res()
         else:
             self.set_best_res()
         self.root.update()
-        self.root.overrideredirect(True)
 
     def __init__(self,*args):
 
@@ -86,43 +87,81 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
         self.init_TK()
 
         # enter the "mainloop"
-        self.log("Entering Mainloop()","GREEN","UNDERLINE")
         self.main_loop()
-        self.log("Extiting Mainloop()","GREEN","UNDERLINE")
 
         # self.root.mainloop()
 
-    def _should_lock_mouse(self):
-        return self._cursor_lock \
-           and self.is_windows \
-           and self.root.winfo_exists() \
-           and self.root.focus_displayof() is not None
+
+    def handle_mouse(self):
+        """calculates mouse input"""
+
+        self.namespace.mouse_coords_x = self.root.winfo_pointerx()
+        self.namespace.mouse_coords_y = self.root.winfo_pointery()
+
+        if self._cursor_lock and self.is_windows and \
+                self.root.winfo_exists() and \
+                (self.root.focus_displayof() is not None):
+
+            self.namespace.mouse_pos_x += self.root.winfo_pointerx() - self._last_cursor_x
+            self.namespace.mouse_pos_y += self.root.winfo_pointery() - self._last_cursor_y
+
+            ctypes.windll.user32.SetCursorPos(int(self.width / 2 + self.root.winfo_x()),
+                                              int(self.height / 2 + self.root.winfo_y()))
+
+            self._last_cursor_x = self.root.winfo_pointerx()
+            self._last_cursor_y = self.root.winfo_pointery()
+
+        elif self.control_mouse_out_of_focus or not self.is_windows:
+            self.namespace.mouse_pos_x += self.root.winfo_pointerx() - self._last_cursor_x
+            self.namespace.mouse_pos_y += self.root.winfo_pointery() - self._last_cursor_y
+            self._last_cursor_x = self.root.winfo_pointerx()
+            self._last_cursor_y = self.root.winfo_pointery()
+
+    def handle_render(self):
+        # clear flags
+        self.render_event.clear()
+        self.waiting_event.set()
+
+        # self.canvas.delete("3d")
+
+        # try render game data
+        code = self.namespace.code
+        if len(code) > 0 and code[0:4] != "None":
+            try:
+                self.root.eval(code)
+            except Exception as e:
+                self.log(len(code), "RED", "COLORBG")
+                self.link()
+                logging.getLogger().exception(e)
+                self.destroy()
+
+        # self.root.dooneevent(0)
+        self.root.update()
 
     def main_loop(self, *_):
         self.t = -time.perf_counter()
-        for i in range(20):
-            self.root.dooneevent(_tkinter.WINDOW_EVENTS)
+        for i in range(99):
+            # clears windows evens on start
+            self.root.update()
+        self.root.overrideredirect(False)
+        self.root.lift()
+        # variables for logging frame rate and processing time
         i=0
         tot_time=0
         proc_time=0
+
+        self.log("Entering Mainloop()", "GREEN", "UNDERLINE")
         # checks if should stop updating TK
         while not self.stop_event.is_set() and self.root.winfo_exists():
+
+
+            if self.root.focus_get():
+                self.root.overrideredirect(True)
+            else:
+                self.root.overrideredirect(False)
+
             # calculates mouse input
-            if self._should_lock_mouse():
-                self.namespace.mouse_pos_x += self.root.winfo_pointerx()-self._last_cursor_x
-                self.namespace.mouse_pos_y += self.root.winfo_pointery()-self._last_cursor_y
-
-                ctypes.windll.user32.SetCursorPos(int( self.width / 2+self.root.winfo_x()),
-                                                  int(self.height / 2+self.root.winfo_y()))
-
-                self._last_cursor_x = self.root.winfo_pointerx()
-                self._last_cursor_y = self.root.winfo_pointery()
-
-            elif self.control_mouse_out_of_focus or not self.is_windows:
-                self.namespace.mouse_pos_x += self.root.winfo_pointerx()-self._last_cursor_x
-                self.namespace.mouse_pos_y += self.root.winfo_pointery()-self._last_cursor_y
-                self._last_cursor_x = self.root.winfo_pointerx()
-                self._last_cursor_y = self.root.winfo_pointery()
+            self.handle_mouse()
 
             # FIXME: maybe a security vulnerability. Should be fixed (maybe)
             if self.command_event.is_set():
@@ -136,36 +175,28 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
 
 
             if self.render_event.is_set():
-                #clear flags
-                proc_time-=time.perf_counter()
-                self.render_event.clear()
-                self.waiting_event.set()
+                proc_time -= time.perf_counter()
+                self.handle_render()
 
-                # self.canvas.delete("3d")
-
-                # try render game data
-                code=self.namespace.code
-                if len(code) > 0 and code[0:4] != "None":
-                    try:
-                         self.root.eval(code)
-                    except Exception as e:
-                        self.log(len(code),"RED","COLORBG")
-                        self.link()
-                        logging.getLogger().exception(e)
-                        self.destroy()
-
-                # self.root.dooneevent(0)
-                self.root.update()
-
-                # logging framerae
+                # logging framerate
                 self._avrg_time = (self.t + time.perf_counter()) * (1 - .9) + self._avrg_time * .9
-                tot_time+=self.t + time.perf_counter()
-                i+=1
+                tot_time += self.t + time.perf_counter()
+                i += 1
                 proc_time += time.perf_counter()
-                if(i%FRAME_RATE_LOG_FREQUENCY==0):
-                    self.log(f"FPS: {1 / self._avrg_time:.1f}","GREEN")
+
+                # prints framerate every N frames
+                if (i % FRAME_RATE_LOG_FREQUENCY == 0):
+                    self.log(f"FPS: {1 / self._avrg_time:.1f}", "GREEN")
                 self.t = -time.perf_counter()
-        self.log(f"time rendering: {proc_time:.3f}. time total: {tot_time:.3f}","CYAN")
+
+        # finally prints time spent in TK and idle waiting for new frame
+        # higher tim
+        self.log(f"Time spent rendering: {proc_time:.3f}. Time spent total: {tot_time:.3f}"
+                 ,"CYAN","BOLD")
+        self.log(f"Rendring \"Efficiency\": {proc_time/tot_time*100:.1f}%"
+                 ,"CYAN","BOLD")
+
+        self.log("Extiting Mainloop()","GREEN","UNDERLINE")
 
     # the ",*_" is for discarding unwanted args.
     def destroy(self, *_):
@@ -256,7 +287,6 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
                 self._fullscreen = False
                 self.update_fullscreen()
                 self._realign_elements()
-            self.canvas.configure(width=self.canvas_width,height=self.canvas_height)
         else:
             # goes through the resolutions and selects the biggest, that won't go over screen
             current_best=640
@@ -270,7 +300,6 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
             self.canvas_height=COMMON_SCREEN_RESOLUTIONS[current_best]
             self._fullscreen = False
             self.update_fullscreen()
-            self.canvas.configure(width=self.canvas_width,height=self.canvas_height)
             self._realign_elements()
 
 
@@ -279,17 +308,17 @@ class TKMultiProcess(metaclass=EngineTypeSingleton):
         self.set_best_res(self.root.winfo_screenwidth()-1)
 
     def _realign_elements(self):
-        self.canvas.config(width=self.root.winfo_width()+4,height=self.root.winfo_height()+4)
 
-        self.namespace.width = self.root.winfo_width()
-        self.namespace.height = self.root.winfo_height()
-        self.namespace.offset_width = int((self.root.winfo_screenwidth() -self.root.winfo_width())/ 2)
+        self.namespace.canv_width = self.canvas_width
+        self.namespace.canv_height = self.canvas_height
+        self.namespace.offset_width = int((self.root.winfo_screenwidth() -self.root.winfo_width()) /2)
         self.namespace.offset_height= int((self.root.winfo_screenheight()-self.root.winfo_height())/2)
 
-        self.root.geometry(f"+{int((self.root.winfo_width()-self.root.winfo_screenwidth())/ 4)}"
-                           f"+{int((self.root.winfo_height()-self.root.winfo_screenheight())/4)}")
-        self.log(self.root.geometry)
-        self.canvas.place(x=int(self.canvas.winfo_width()-self.root.winfo_width())/2,
-                          y=int(self.canvas.winfo_height()-self.root.winfo_height())/2)
-        self.canvas.configure(width=self.canvas_width, height=self.canvas_height)
+        self.root.geometry(f"+{int((self.root.winfo_screenwidth() -self.root.winfo_width()) /2)}"
+                           f"+{int((self.root.winfo_screenheight()-self.root.winfo_height())/2)}")
+        self.canvas.place(width=self.canvas_width,height=self.canvas_height,
+                          x=int(self.root.winfo_width()-self.canvas_width)/2,
+                          y=int(self.root.winfo_height()-self.canvas_height)/2)
+        # self.log(self.canvas.winfo_geometry(),"RED")
+        # self.log(self.root.geometry(),"RED")
         # TODO: better way to hide edges of the canvas

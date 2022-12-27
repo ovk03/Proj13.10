@@ -69,7 +69,7 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
 
         c_pos_x,c_pos_y,c_pos_z = self.camera_pos
         
-        screen_width, screen_height, canvas = GameToTK().get_data_for_rend()
+        screen_w, screen_h, canvas = GameToTK().get_data_for_rend()
 
         sa = math.sin((self.camera_rot[0]) * math.radians(1))
         ca = math.cos((self.camera_rot[0]) * math.radians(1))
@@ -102,144 +102,146 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
 
         # region confusing math Keep collapsed
         z_list=[]
-        for tri in buffer:
+        for quad_data in buffer:
             z_list.append(
-        ((tri[0]-c_pos_x) * (tri[0]-c_pos_x) + (tri[1]-c_pos_y) *
-         (tri[1]-c_pos_y) + (tri[2]-c_pos_z) * (tri[2]-c_pos_z)) +
-        ((tri[3]-c_pos_x) * (tri[3]-c_pos_x) + (tri[4]-c_pos_y) *
-         (tri[4]-c_pos_y) + (tri[5]-c_pos_z) * (tri[5]-c_pos_z)) +
-        ((tri[6]-c_pos_x) * (tri[6]-c_pos_x) + (tri[7]-c_pos_y) *
-         (tri[7]-c_pos_y) + (tri[8]-c_pos_z) * (tri[8]-c_pos_z)) +
-        ((tri[9]-c_pos_x) * (tri[9]-c_pos_x) + (tri[10]-c_pos_y) *
-         (tri[10]-c_pos_y) + (tri[11]-c_pos_z) * (tri[11]-c_pos_z)))
+        ((quad_data[0]-c_pos_x) * (quad_data[0]-c_pos_x) + (quad_data[1]-c_pos_y) *
+         (quad_data[1]-c_pos_y) + (quad_data[2]-c_pos_z) * (quad_data[2]-c_pos_z)) +
+        ((quad_data[3]-c_pos_x) * (quad_data[3]-c_pos_x) + (quad_data[4]-c_pos_y) *
+         (quad_data[4]-c_pos_y) + (quad_data[5]-c_pos_z) * (quad_data[5]-c_pos_z)) +
+        ((quad_data[6]-c_pos_x) * (quad_data[6]-c_pos_x) + (quad_data[7]-c_pos_y) *
+         (quad_data[7]-c_pos_y) + (quad_data[8]-c_pos_z) * (quad_data[8]-c_pos_z)) +
+        ((quad_data[9]-c_pos_x) * (quad_data[9]-c_pos_x) + (quad_data[10]-c_pos_y) *
+         (quad_data[10]-c_pos_y) + (quad_data[11]-c_pos_z) * (quad_data[11]-c_pos_z)))
         buffer = [i[1] for i in sorted(zip(z_list,buffer))]
 
         lenght = POLYGON_COUNT-1
 
         # Each calculation inside this loop is run approximately 1e9 times in only 20 seconds
         # For that reason I have to use all possible optimizations, even though it wont result in readable code
-        for tri in buffer:
+
+        # quad contains 4 points, color and normal, in total 18
+
+        for quad_data in buffer:
             """This has explanation in USER MANUAL. This section doesn't contain comments as they 
             wouldn't be sufficient in explaining this and that would increase the rowcount further"""
 
             # TODO: backface culling
-            if (tri[0]-c_pos_x)*tri[15]+ \
-               (tri[1]-c_pos_y)*tri[16]+ \
-               (tri[2]-c_pos_z)*tri[17] >= 0:
+            if (quad_data[0]-c_pos_x)*quad_data[15]+ \
+               (quad_data[1]-c_pos_y)*quad_data[16]+ \
+               (quad_data[2]-c_pos_z)*quad_data[17] >= 0:
                 continue
 
             # region confusing math Keep collapsed
-            point1_v4 = (
-                trans_m3x3[0] * (tri[0]-c_pos_x)+
-                trans_m3x3[3] * (tri[1]-c_pos_y)+
-                trans_m3x3[6] * (tri[2]-c_pos_z),
-                trans_m3x3[1] * (tri[0]-c_pos_x)+
-                trans_m3x3[4] * (tri[1]-c_pos_y)+
-                trans_m3x3[7] * (tri[2]-c_pos_z),
-                trans_m3x3[2] * (tri[0]-c_pos_x)+
-                trans_m3x3[5] * (tri[1]-c_pos_y)+
-                trans_m3x3[8] * (tri[2]-c_pos_z))
-            point2_v4 = (
-                trans_m3x3[0] * (tri[3]-c_pos_x)+
-                trans_m3x3[3] * (tri[4]-c_pos_y)+
-                trans_m3x3[6] * (tri[5]-c_pos_z),
-                trans_m3x3[1] * (tri[3]-c_pos_x)+
-                trans_m3x3[4] * (tri[4]-c_pos_y)+
-                trans_m3x3[7] * (tri[5]-c_pos_z),
-                trans_m3x3[2] * (tri[3]-c_pos_x)+
-                trans_m3x3[5] * (tri[4]-c_pos_y)+
-                trans_m3x3[8] * (tri[5]-c_pos_z))
-            point3_v4 = (
-                trans_m3x3[0] * (tri[6]-c_pos_x)+
-                trans_m3x3[3] * (tri[7]-c_pos_y)+
-                trans_m3x3[6] * (tri[8]-c_pos_z),
-                trans_m3x3[1] * (tri[6]-c_pos_x)+
-                trans_m3x3[4] * (tri[7]-c_pos_y)+
-                trans_m3x3[7] * (tri[8]-c_pos_z),
-                trans_m3x3[2] * (tri[6]-c_pos_x)+
-                trans_m3x3[5] * (tri[7]-c_pos_y)+
-                trans_m3x3[8] * (tri[8]-c_pos_z))
-            point4_v4 = (
-                trans_m3x3[0] * (tri[9]-c_pos_x)+
-                trans_m3x3[3] * (tri[10]-c_pos_y)+
-                trans_m3x3[6] * (tri[11]-c_pos_z),
-                trans_m3x3[1] * (tri[9]-c_pos_x)+
-                trans_m3x3[4] * (tri[10]-c_pos_y)+
-                trans_m3x3[7] * (tri[11]-c_pos_z),
-                trans_m3x3[2] * (tri[9]-c_pos_x)+
-                trans_m3x3[5] * (tri[10]-c_pos_y)+
-                trans_m3x3[8] * (tri[11]-c_pos_z))
+            p1 = (
+                trans_m3x3[0] * (quad_data[0]-c_pos_x)+
+                trans_m3x3[3] * (quad_data[1]-c_pos_y)+
+                trans_m3x3[6] * (quad_data[2]-c_pos_z),
+                trans_m3x3[1] * (quad_data[0]-c_pos_x)+
+                trans_m3x3[4] * (quad_data[1]-c_pos_y)+
+                trans_m3x3[7] * (quad_data[2]-c_pos_z),
+                trans_m3x3[2] * (quad_data[0]-c_pos_x)+
+                trans_m3x3[5] * (quad_data[1]-c_pos_y)+
+                trans_m3x3[8] * (quad_data[2]-c_pos_z))
+            p2 = (
+                trans_m3x3[0] * (quad_data[3]-c_pos_x)+
+                trans_m3x3[3] * (quad_data[4]-c_pos_y)+
+                trans_m3x3[6] * (quad_data[5]-c_pos_z),
+                trans_m3x3[1] * (quad_data[3]-c_pos_x)+
+                trans_m3x3[4] * (quad_data[4]-c_pos_y)+
+                trans_m3x3[7] * (quad_data[5]-c_pos_z),
+                trans_m3x3[2] * (quad_data[3]-c_pos_x)+
+                trans_m3x3[5] * (quad_data[4]-c_pos_y)+
+                trans_m3x3[8] * (quad_data[5]-c_pos_z))
+            p3 = (
+                trans_m3x3[0] * (quad_data[6]-c_pos_x)+
+                trans_m3x3[3] * (quad_data[7]-c_pos_y)+
+                trans_m3x3[6] * (quad_data[8]-c_pos_z),
+                trans_m3x3[1] * (quad_data[6]-c_pos_x)+
+                trans_m3x3[4] * (quad_data[7]-c_pos_y)+
+                trans_m3x3[7] * (quad_data[8]-c_pos_z),
+                trans_m3x3[2] * (quad_data[6]-c_pos_x)+
+                trans_m3x3[5] * (quad_data[7]-c_pos_y)+
+                trans_m3x3[8] * (quad_data[8]-c_pos_z))
+            p4 = (
+                trans_m3x3[0] * (quad_data[9]-c_pos_x)+
+                trans_m3x3[3] * (quad_data[10]-c_pos_y)+
+                trans_m3x3[6] * (quad_data[11]-c_pos_z),
+                trans_m3x3[1] * (quad_data[9]-c_pos_x)+
+                trans_m3x3[4] * (quad_data[10]-c_pos_y)+
+                trans_m3x3[7] * (quad_data[11]-c_pos_z),
+                trans_m3x3[2] * (quad_data[9]-c_pos_x)+
+                trans_m3x3[5] * (quad_data[10]-c_pos_y)+
+                trans_m3x3[8] * (quad_data[11]-c_pos_z))
 
-            if (0.0 >= point1_v4[2]) and \
-               (0.0 >= point2_v4[2]) and \
-               (0.0 >= point3_v4[2]) and \
-               (0.0 >= point4_v4[2]):
+            if (0.0 >= p1[2]) and \
+               (0.0 >= p2[2]) and \
+               (0.0 >= p3[2]) and \
+               (0.0 >= p4[2]):
                 continue
 
-            point1_v4 = (
-                fov_near_x * point1_v4[0],
-                fov_near_y * point1_v4[1],
-                point1_v4[2]*far_far_near-far_near_near_far,
-                point1_v4[2])
-            point2_v4 = (
-                fov_near_x * point2_v4[0],
-                fov_near_y * point2_v4[1],
-                point2_v4[2]*far_far_near-far_near_near_far,
-                point2_v4[2])
-            point3_v4 = (
-                fov_near_x * point3_v4[0],
-                fov_near_y * point3_v4[1],
-                point3_v4[2]*far_far_near-far_near_near_far,
-                point3_v4[2])
-            point4_v4 = (
-                fov_near_x * point4_v4[0],
-                fov_near_y * point4_v4[1],
-                point4_v4[2]*far_far_near-far_near_near_far,
-                point4_v4[2])
+            p1 = (
+                fov_near_x * p1[0],
+                fov_near_y * p1[1],
+                p1[2]*far_far_near-far_near_near_far,
+                p1[2])
+            p2 = (
+                fov_near_x * p2[0],
+                fov_near_y * p2[1],
+                p2[2]*far_far_near-far_near_near_far,
+                p2[2])
+            p3 = (
+                fov_near_x * p3[0],
+                fov_near_y * p3[1],
+                p3[2]*far_far_near-far_near_near_far,
+                p3[2])
+            p4 = (
+                fov_near_x * p4[0],
+                fov_near_y * p4[1],
+                p4[2]*far_far_near-far_near_near_far,
+                p4[2])
 
             # TODO: maybe skiping these checks and relying on area culling would result in better performance
-            if (point1_v4[0] > point1_v4[3]) and \
-               (point2_v4[0] > point2_v4[3]) and \
-               (point3_v4[0] > point3_v4[3]) and \
-               (point4_v4[0] > point4_v4[3]):
+            if (p1[0] > p1[3]) and \
+               (p2[0] > p2[3]) and \
+               (p3[0] > p3[3]) and \
+               (p4[0] > p4[3]):
                 continue
-            if (point1_v4[0] < -point1_v4[3]) and \
-               (point2_v4[0] < -point2_v4[3]) and \
-               (point3_v4[0] < -point3_v4[3]) and \
-               (point4_v4[0] < -point4_v4[3]):
+            if (p1[0] < -p1[3]) and \
+               (p2[0] < -p2[3]) and \
+               (p3[0] < -p3[3]) and \
+               (p4[0] < -p4[3]):
                 continue
-            if (point1_v4[1] > point1_v4[3]) and \
-               (point2_v4[1] > point2_v4[3]) and \
-               (point3_v4[1] > point3_v4[3]) and \
-               (point4_v4[1] > point4_v4[3]):
+            if (p1[1] > p1[3]) and \
+               (p2[1] > p2[3]) and \
+               (p3[1] > p3[3]) and \
+               (p4[1] > p4[3]):
                 continue
-            if (point1_v4[1] < -point1_v4[3]) and \
-               (point2_v4[1] < -point2_v4[3]) and \
-               (point3_v4[1] < -point3_v4[3]) and \
-               (point4_v4[1] < -point4_v4[3]):
+            if (p1[1] < -p1[3]) and \
+               (p2[1] < -p2[3]) and \
+               (p3[1] < -p3[3]) and \
+               (p4[1] < -p4[3]):
                 continue
 
             # region append geometry
 
-            if (0.0 < point1_v4[2]) and \
-               (0.0 < point2_v4[2]) and \
-               (0.0 < point3_v4[2]) and \
-               (0.0 < point4_v4[2]):
+            if (0.0 < p1[2]) and \
+               (0.0 < p2[2]) and \
+               (0.0 < p3[2]) and \
+               (0.0 < p4[2]):
 
-                point1_v4 = (((point1_v4[0]/point1_v4[3]+1)*screen_width/2,(point1_v4[1]/point1_v4[3]+1)*screen_height/2))
-                point2_v4 = (((point2_v4[0]/point2_v4[3]+1)*screen_width/2,(point2_v4[1]/point2_v4[3]+1)*screen_height/2))
-                point3_v4 = (((point3_v4[0]/point3_v4[3]+1)*screen_width/2,(point3_v4[1]/point3_v4[3]+1)*screen_height/2))
-                point4_v4 = (((point4_v4[0]/point4_v4[3]+1)*screen_width/2,(point4_v4[1]/point4_v4[3]+1)*screen_height/2))
-                tcl_code.append(f"{canvas} coords {lenght} {point1_v4[0]} {point1_v4[1]} {point2_v4[0]} {point2_v4[1]} "
-                                f"{point3_v4[0]} {point3_v4[1]} {point4_v4[0]} {point4_v4[1]}\n"
-                                f"{canvas} itemconfigure {lenght} -fill #{tri[12]:02x}{tri[13]:02x}{tri[14]:002x}\n")
+                p1 = ((p1[0]/p1[3]+1)*screen_w/2, (p1[1]/p1[3]+1)*screen_h/2)
+                p2 = ((p2[0]/p2[3]+1)*screen_w/2, (p2[1]/p2[3]+1)*screen_h/2)
+                p3 = ((p3[0]/p3[3]+1)*screen_w/2, (p3[1]/p3[3]+1)*screen_h/2)
+                p4 = ((p4[0]/p4[3]+1)*screen_w/2, (p4[1]/p4[3]+1)*screen_h/2)
+                tcl_code.append(f"{canvas} coords {lenght} {p1[0]} {p1[1]} {p2[0]} {p2[1]} "
+                                f"{p3[0]} {p3[1]} {p4[0]} {p4[1]}\n"
+                                f"{canvas} itemconfigure {lenght} -fill #{quad_data[12]:02x}{quad_data[13]:02x}{quad_data[14]:002x}\n")
 
-            else: # OH NO THIS IS GONNA GET MESSY
-                # TODO: cull Z  in a way that makes sense perspective wise
-                c1 = (0.0 >= point1_v4[2])
-                c2 = (0.0 >= point2_v4[2])
-                c3 = (0.0 >= point3_v4[2])
-                c4 = (0.0 >= point4_v4[2])
+            else: # OH NO. THIS IS GONNA GET MESSY
+                c1 = (0.0 >= p1[2])
+                c2 = (0.0 >= p2[2])
+                c3 = (0.0 >= p3[2])
+                c4 = (0.0 >= p4[2])
 
                 if c1 and c2 and c3 and c4:
                     continue
@@ -254,193 +256,193 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
                     if clip_count == 2:
                         if c1:
                             if c2: #c12  self.log("Z clip #12","COLORBG")
-                                a=1+point1_v4[2]/(point4_v4[2]-point1_v4[2])
-                                point1_v4 = (point1_v4[0]*a+point4_v4[0]*(1-a),
-                                             point1_v4[1]*a+point4_v4[1]*(1-a),
-                                             point1_v4[2]*a+point4_v4[2]*(1-a),
-                                             point1_v4[3]*a+point4_v4[3]*(1-a))
-                                a=1+point2_v4[2]/(point3_v4[2]-point2_v4[2])
-                                point2_v4 = (point2_v4[0]*a+point3_v4[0]*(1-a),
-                                             point2_v4[1]*a+point3_v4[1]*(1-a),
-                                             point2_v4[2]*a+point3_v4[2]*(1-a),
-                                             point2_v4[3]*a+point3_v4[3]*(1-a))
+                                a=1+p1[2]/(p4[2]-p1[2])
+                                p1 = (p1[0]*a+p4[0]*(1-a),
+                                             p1[1]*a+p4[1]*(1-a),
+                                             p1[2]*a+p4[2]*(1-a),
+                                             p1[3]*a+p4[3]*(1-a))
+                                a=1+p2[2]/(p3[2]-p2[2])
+                                p2 = (p2[0]*a+p3[0]*(1-a),
+                                             p2[1]*a+p3[1]*(1-a),
+                                             p2[2]*a+p3[2]*(1-a),
+                                             p2[3]*a+p3[3]*(1-a))
                             else: #c14 self.log("Z clip #14","COLORBG")
-                                a=1+point1_v4[2]/(point2_v4[2]-point1_v4[2])
-                                point1_v4 = (point1_v4[0]*a+point2_v4[0]*(1-a),
-                                             point1_v4[1]*a+point2_v4[1]*(1-a),
-                                             point1_v4[2]*a+point2_v4[2]*(1-a),
-                                             point1_v4[3]*a+point2_v4[3]*(1-a))
-                                a=1+point4_v4[2]/(point3_v4[2]-point4_v4[2])
-                                point4_v4 = (point4_v4[0]*a+point3_v4[0]*(1-a),
-                                             point4_v4[1]*a+point3_v4[1]*(1-a),
-                                             point4_v4[2]*a+point3_v4[2]*(1-a),
-                                             point4_v4[3]*a+point3_v4[3]*(1-a))
+                                a=1+p1[2]/(p2[2]-p1[2])
+                                p1 = (p1[0]*a+p2[0]*(1-a),
+                                             p1[1]*a+p2[1]*(1-a),
+                                             p1[2]*a+p2[2]*(1-a),
+                                             p1[3]*a+p2[3]*(1-a))
+                                a=1+p4[2]/(p3[2]-p4[2])
+                                p4 = (p4[0]*a+p3[0]*(1-a),
+                                             p4[1]*a+p3[1]*(1-a),
+                                             p4[2]*a+p3[2]*(1-a),
+                                             p4[3]*a+p3[3]*(1-a))
                         elif c2: #c23 self.log("Z clip #23","COLORBG")
-                                a=1+point2_v4[2]/(point1_v4[2]-point2_v4[2])
-                                point2_v4 = (point2_v4[0]*a+point1_v4[0]*(1-a),
-                                             point2_v4[1]*a+point1_v4[1]*(1-a),
-                                             point2_v4[2]*a+point1_v4[2]*(1-a),
-                                             point2_v4[3]*a+point1_v4[3]*(1-a))
-                                a=1+point3_v4[2]/(point4_v4[2]-point3_v4[2])
-                                point3_v4 = (point3_v4[0]*a+point4_v4[0]*(1-a),
-                                             point3_v4[1]*a+point4_v4[1]*(1-a),
-                                             point3_v4[2]*a+point4_v4[2]*(1-a),
-                                             point3_v4[3]*a+point4_v4[3]*(1-a))
+                                a=1+p2[2]/(p1[2]-p2[2])
+                                p2 = (p2[0]*a+p1[0]*(1-a),
+                                             p2[1]*a+p1[1]*(1-a),
+                                             p2[2]*a+p1[2]*(1-a),
+                                             p2[3]*a+p1[3]*(1-a))
+                                a=1+p3[2]/(p4[2]-p3[2])
+                                p3 = (p3[0]*a+p4[0]*(1-a),
+                                             p3[1]*a+p4[1]*(1-a),
+                                             p3[2]*a+p4[2]*(1-a),
+                                             p3[3]*a+p4[3]*(1-a))
                         else:    #c34 self.log("Z clip #34","COLORBG")
-                                a=1+point3_v4[2]/(point2_v4[2]-point3_v4[2])
-                                point3_v4 = (point3_v4[0]*a+point2_v4[0]*(1-a),
-                                             point3_v4[1]*a+point2_v4[1]*(1-a),
-                                             point3_v4[2]*a+point2_v4[2]*(1-a),
-                                             point3_v4[3]*a+point2_v4[3]*(1-a))
-                                a=1+point4_v4[2]/(point1_v4[2]-point4_v4[2])
-                                point4_v4 = (point4_v4[0]*a+point1_v4[0]*(1-a),
-                                             point4_v4[1]*a+point1_v4[1]*(1-a),
-                                             point4_v4[2]*a+point1_v4[2]*(1-a),
-                                             point4_v4[3]*a+point1_v4[3]*(1-a))
+                                a=1+p3[2]/(p2[2]-p3[2])
+                                p3 = (p3[0]*a+p2[0]*(1-a),
+                                             p3[1]*a+p2[1]*(1-a),
+                                             p3[2]*a+p2[2]*(1-a),
+                                             p3[3]*a+p2[3]*(1-a))
+                                a=1+p4[2]/(p1[2]-p4[2])
+                                p4 = (p4[0]*a+p1[0]*(1-a),
+                                             p4[1]*a+p1[1]*(1-a),
+                                             p4[2]*a+p1[2]*(1-a),
+                                             p4[3]*a+p1[3]*(1-a))
                     elif not c1: #c24 self.log("Z clip #234","COLORBG")
-                                a=1+point2_v4[2]/(point1_v4[2]-point2_v4[2])
-                                point2_v4 = (point2_v4[0]*a+point1_v4[0]*(1-a),
-                                             point2_v4[1]*a+point1_v4[1]*(1-a),
-                                             point2_v4[2]*a+point1_v4[2]*(1-a),
-                                             point2_v4[3]*a+point1_v4[3]*(1-a))
-                                a=1+point4_v4[2]/(point1_v4[2]-point4_v4[2])
-                                point4_v4 = (point4_v4[0]*a+point1_v4[0]*(1-a),
-                                             point4_v4[1]*a+point1_v4[1]*(1-a),
-                                             point4_v4[2]*a+point1_v4[2]*(1-a),
-                                             point4_v4[3]*a+point1_v4[3]*(1-a))
-                                point3_v4 = point4_v4
+                                a=1+p2[2]/(p1[2]-p2[2])
+                                p2 = (p2[0]*a+p1[0]*(1-a),
+                                             p2[1]*a+p1[1]*(1-a),
+                                             p2[2]*a+p1[2]*(1-a),
+                                             p2[3]*a+p1[3]*(1-a))
+                                a=1+p4[2]/(p1[2]-p4[2])
+                                p4 = (p4[0]*a+p1[0]*(1-a),
+                                             p4[1]*a+p1[1]*(1-a),
+                                             p4[2]*a+p1[2]*(1-a),
+                                             p4[3]*a+p1[3]*(1-a))
+                                p3 = p4
                     elif not c2: #c134 self.log("Z clip #134","COLORBG")
-                                a=1+point1_v4[2]/(point2_v4[2]-point1_v4[2])
-                                point1_v4 = (point1_v4[0]*a+point2_v4[0]*(1-a),
-                                             point1_v4[1]*a+point2_v4[1]*(1-a),
-                                             point1_v4[2]*a+point2_v4[2]*(1-a),
-                                             point1_v4[3]*a+point2_v4[3]*(1-a))
-                                a=1+point3_v4[2]/(point2_v4[2]-point3_v4[2])
-                                point3_v4 = (point3_v4[0]*a+point2_v4[0]*(1-a),
-                                             point3_v4[1]*a+point2_v4[1]*(1-a),
-                                             point3_v4[2]*a+point2_v4[2]*(1-a),
-                                             point3_v4[3]*a+point2_v4[3]*(1-a))
-                                point4_v4 = point1_v4
+                                a=1+p1[2]/(p2[2]-p1[2])
+                                p1 = (p1[0]*a+p2[0]*(1-a),
+                                             p1[1]*a+p2[1]*(1-a),
+                                             p1[2]*a+p2[2]*(1-a),
+                                             p1[3]*a+p2[3]*(1-a))
+                                a=1+p3[2]/(p2[2]-p3[2])
+                                p3 = (p3[0]*a+p2[0]*(1-a),
+                                             p3[1]*a+p2[1]*(1-a),
+                                             p3[2]*a+p2[2]*(1-a),
+                                             p3[3]*a+p2[3]*(1-a))
+                                p4 = p1
                     elif not c3: #c124 self.log("Z clip #124","COLORBG")
-                                a=1+point2_v4[2]/(point3_v4[2]-point2_v4[2])
-                                point2_v4 = (point2_v4[0]*a+point3_v4[0]*(1-a),
-                                             point2_v4[1]*a+point3_v4[1]*(1-a),
-                                             point2_v4[2]*a+point3_v4[2]*(1-a),
-                                             point2_v4[3]*a+point3_v4[3]*(1-a))
-                                a=1+point4_v4[2]/(point3_v4[2]-point4_v4[2])
-                                point4_v4 = (point4_v4[0]*a+point3_v4[0]*(1-a),
-                                             point4_v4[1]*a+point3_v4[1]*(1-a),
-                                             point4_v4[2]*a+point3_v4[2]*(1-a),
-                                             point4_v4[3]*a+point3_v4[3]*(1-a))
-                                point1_v4 = point2_v4
+                                a=1+p2[2]/(p3[2]-p2[2])
+                                p2 = (p2[0]*a+p3[0]*(1-a),
+                                             p2[1]*a+p3[1]*(1-a),
+                                             p2[2]*a+p3[2]*(1-a),
+                                             p2[3]*a+p3[3]*(1-a))
+                                a=1+p4[2]/(p3[2]-p4[2])
+                                p4 = (p4[0]*a+p3[0]*(1-a),
+                                             p4[1]*a+p3[1]*(1-a),
+                                             p4[2]*a+p3[2]*(1-a),
+                                             p4[3]*a+p3[3]*(1-a))
+                                p1 = p2
                     else:        #c123 self.log("Z clip #123","COLORBG")
-                                a=1+point1_v4[2]/(point4_v4[2]-point1_v4[2])
-                                point1_v4 = (point1_v4[0]*a+point4_v4[0]*(1-a),
-                                             point1_v4[1]*a+point4_v4[1]*(1-a),
-                                             point1_v4[2]*a+point4_v4[2]*(1-a),
-                                             point1_v4[3]*a+point4_v4[3]*(1-a))
-                                a=1+point3_v4[2]/(point4_v4[2]-point3_v4[2])
-                                point3_v4 = (point3_v4[0]*a+point4_v4[0]*(1-a),
-                                             point3_v4[1]*a+point4_v4[1]*(1-a),
-                                             point3_v4[2]*a+point4_v4[2]*(1-a),
-                                             point3_v4[3]*a+point4_v4[3]*(1-a))
-                                point2_v4 = point3_v4
+                                a=1+p1[2]/(p4[2]-p1[2])
+                                p1 = (p1[0]*a+p4[0]*(1-a),
+                                             p1[1]*a+p4[1]*(1-a),
+                                             p1[2]*a+p4[2]*(1-a),
+                                             p1[3]*a+p4[3]*(1-a))
+                                a=1+p3[2]/(p4[2]-p3[2])
+                                p3 = (p3[0]*a+p4[0]*(1-a),
+                                             p3[1]*a+p4[1]*(1-a),
+                                             p3[2]*a+p4[2]*(1-a),
+                                             p3[3]*a+p4[3]*(1-a))
+                                p2 = p3
 
-                    point1_v4 = ((point1_v4[0]/point1_v4[3]+1)*screen_width/2,(point1_v4[1]/point1_v4[3]+1)*screen_height/2)
-                    point2_v4 = ((point2_v4[0]/point2_v4[3]+1)*screen_width/2,(point2_v4[1]/point2_v4[3]+1)*screen_height/2)
-                    point3_v4 = ((point3_v4[0]/point3_v4[3]+1)*screen_width/2,(point3_v4[1]/point3_v4[3]+1)*screen_height/2)
-                    point4_v4 = ((point4_v4[0]/point4_v4[3]+1)*screen_width/2,(point4_v4[1]/point4_v4[3]+1)*screen_height/2)
-                    tcl_code.append(f"{canvas} coords {lenght} {point1_v4[0]} {point1_v4[1]} {point2_v4[0]} {point2_v4[1]} "
-                                    f"{point3_v4[0]} {point3_v4[1]} {point4_v4[0]} {point4_v4[1]}\n"
-                                    f"{canvas} itemconfigure {lenght} -fill #{tri[12]:02x}{tri[13]:02x}{tri[14]:002x}\n")
+                    p1 = ((p1[0]/p1[3]+1)*screen_w/2,(p1[1]/p1[3]+1)*screen_h/2)
+                    p2 = ((p2[0]/p2[3]+1)*screen_w/2,(p2[1]/p2[3]+1)*screen_h/2)
+                    p3 = ((p3[0]/p3[3]+1)*screen_w/2,(p3[1]/p3[3]+1)*screen_h/2)
+                    p4 = ((p4[0]/p4[3]+1)*screen_w/2,(p4[1]/p4[3]+1)*screen_h/2)
+                    tcl_code.append(f"{canvas} coords {lenght} {p1[0]} {p1[1]} {p2[0]} {p2[1]} "
+                                    f"{p3[0]} {p3[1]} {p4[0]} {p4[1]}\n"
+                                    f"{canvas} itemconfigure {lenght} -fill #{quad_data[12]:02x}{quad_data[13]:02x}{quad_data[14]:002x}\n")
 
                 elif clip_count == 1: # In this case we need more polygons to represent this polygon
                     if c1:   #c1 self.log("Z clip #1","COLORBG")
-                        a1=1+point1_v4[2]/(point2_v4[2]-point1_v4[2])
-                        a2=1+point1_v4[2]/(point4_v4[2]-point1_v4[2])
-                        pos=point1_v4
-                        point1_v4 = (pos[0]*a1+point2_v4[0]*(1-a1),
-                                     pos[1]*a1+point2_v4[1]*(1-a1),
-                                     pos[2]*a1+point2_v4[2]*(1-a1),
-                                     pos[3]*a1+point2_v4[3]*(1-a1))
-                        point5_v4 = (pos[0]*a2+point4_v4[0]*(1-a2),
-                                     pos[1]*a2+point4_v4[1]*(1-a2),
-                                     pos[2]*a2+point4_v4[2]*(1-a2),
-                                     pos[3]*a2+point4_v4[3]*(1-a2))
-                        point6_v4 = point3_v4
-                        point7_v4 = point4_v4
-                        point8_v4 = point4_v4
-                        point4_v4 = point5_v4  # move this last, as other depend on this val
+                        a1=1+p1[2]/(p2[2]-p1[2])
+                        a2=1+p1[2]/(p4[2]-p1[2])
+                        pos=p1
+                        p1 = (pos[0]*a1+p2[0]*(1-a1),
+                                     pos[1]*a1+p2[1]*(1-a1),
+                                     pos[2]*a1+p2[2]*(1-a1),
+                                     pos[3]*a1+p2[3]*(1-a1))
+                        p5 = (pos[0]*a2+p4[0]*(1-a2),
+                                     pos[1]*a2+p4[1]*(1-a2),
+                                     pos[2]*a2+p4[2]*(1-a2),
+                                     pos[3]*a2+p4[3]*(1-a2))
+                        p6 = p3
+                        p7 = p4
+                        p8 = p4
+                        p4 = p5  # move this last, as other depend on this val
                     elif c2: #c2 self.log("Z clip #2","COLORBG")
-                        a1=1+point2_v4[2]/(point3_v4[2]-point2_v4[2])
-                        a2=1+point2_v4[2]/(point1_v4[2]-point2_v4[2])
-                        pos=point2_v4
-                        point2_v4 = (pos[0]*a1+point3_v4[0]*(1-a1),
-                                     pos[1]*a1+point3_v4[1]*(1-a1),
-                                     pos[2]*a1+point3_v4[2]*(1-a1),
-                                     pos[3]*a1+point3_v4[3]*(1-a1))
-                        point5_v4 = (pos[0]*a2+point1_v4[0]*(1-a2),
-                                     pos[1]*a2+point1_v4[1]*(1-a2),
-                                     pos[2]*a2+point1_v4[2]*(1-a2),
-                                     pos[3]*a2+point1_v4[3]*(1-a2))
-                        point6_v4 = point4_v4
-                        point7_v4 = point1_v4
-                        point8_v4 = point1_v4
-                        point1_v4 = point5_v4  # move this last, as other depend on this val
+                        a1=1+p2[2]/(p3[2]-p2[2])
+                        a2=1+p2[2]/(p1[2]-p2[2])
+                        pos=p2
+                        p2 = (pos[0]*a1+p3[0]*(1-a1),
+                                     pos[1]*a1+p3[1]*(1-a1),
+                                     pos[2]*a1+p3[2]*(1-a1),
+                                     pos[3]*a1+p3[3]*(1-a1))
+                        p5 = (pos[0]*a2+p1[0]*(1-a2),
+                                     pos[1]*a2+p1[1]*(1-a2),
+                                     pos[2]*a2+p1[2]*(1-a2),
+                                     pos[3]*a2+p1[3]*(1-a2))
+                        p6 = p4
+                        p7 = p1
+                        p8 = p1
+                        p1 = p5  # move this last, as other depend on this val
                     elif c3: #c3 self.log("Z clip #3","COLORBG")
-                        a1=1+point3_v4[2]/(point4_v4[2]-point3_v4[2])
-                        a2=1+point3_v4[2]/(point2_v4[2]-point3_v4[2])
-                        pos=point3_v4
-                        point3_v4 = (pos[0]*a1+point4_v4[0]*(1-a1),
-                                     pos[1]*a1+point4_v4[1]*(1-a1),
-                                     pos[2]*a1+point4_v4[2]*(1-a1),
-                                     pos[3]*a1+point4_v4[3]*(1-a1))
-                        point5_v4 = (pos[0]*a2+point2_v4[0]*(1-a2),
-                                     pos[1]*a2+point2_v4[1]*(1-a2),
-                                     pos[2]*a2+point2_v4[2]*(1-a2),
-                                     pos[3]*a2+point2_v4[3]*(1-a2))
-                        point6_v4 = point1_v4
-                        point7_v4 = point2_v4
-                        point8_v4 = point2_v4
-                        point2_v4 = point5_v4 # move this last, as other depend on this val
+                        a1=1+p3[2]/(p4[2]-p3[2])
+                        a2=1+p3[2]/(p2[2]-p3[2])
+                        pos=p3
+                        p3 = (pos[0]*a1+p4[0]*(1-a1),
+                                     pos[1]*a1+p4[1]*(1-a1),
+                                     pos[2]*a1+p4[2]*(1-a1),
+                                     pos[3]*a1+p4[3]*(1-a1))
+                        p5 = (pos[0]*a2+p2[0]*(1-a2),
+                                     pos[1]*a2+p2[1]*(1-a2),
+                                     pos[2]*a2+p2[2]*(1-a2),
+                                     pos[3]*a2+p2[3]*(1-a2))
+                        p6 = p1
+                        p7 = p2
+                        p8 = p2
+                        p2 = p5 # move this last, as other depend on this val
                     else:    #c4 self.log("Z clip #4","COLORBG")
-                        a1=1+point4_v4[2]/(point1_v4[2]-point4_v4[2])
-                        a2=1+point4_v4[2]/(point3_v4[2]-point4_v4[2])
-                        pos=point4_v4
-                        point4_v4 = (pos[0]*a1+point1_v4[0]*(1-a1),
-                                     pos[1]*a1+point1_v4[1]*(1-a1),
-                                     pos[2]*a1+point1_v4[2]*(1-a1),
-                                     pos[3]*a1+point1_v4[3]*(1-a1))
-                        point5_v4 = (pos[0]*a2+point3_v4[0]*(1-a2),
-                                     pos[1]*a2+point3_v4[1]*(1-a2),
-                                     pos[2]*a2+point3_v4[2]*(1-a2),
-                                     pos[3]*a2+point3_v4[3]*(1-a2))
-                        point6_v4 = point2_v4
-                        point7_v4 = point3_v4
-                        point8_v4 = point3_v4
-                        point3_v4 = point5_v4  # move this last, as other depend on this val
+                        a1=1+p4[2]/(p1[2]-p4[2])
+                        a2=1+p4[2]/(p3[2]-p4[2])
+                        pos=p4
+                        p4 = (pos[0]*a1+p1[0]*(1-a1),
+                                     pos[1]*a1+p1[1]*(1-a1),
+                                     pos[2]*a1+p1[2]*(1-a1),
+                                     pos[3]*a1+p1[3]*(1-a1))
+                        p5 = (pos[0]*a2+p3[0]*(1-a2),
+                                     pos[1]*a2+p3[1]*(1-a2),
+                                     pos[2]*a2+p3[2]*(1-a2),
+                                     pos[3]*a2+p3[3]*(1-a2))
+                        p6 = p2
+                        p7 = p3
+                        p8 = p3
+                        p3 = p5  # move this last, as other depend on this val
 
-                    point1_v4 = ((point1_v4[0]/point1_v4[3]+1)*screen_width/2,(point1_v4[1]/point1_v4[3]+1)*screen_height/2)
-                    point2_v4 = ((point2_v4[0]/point2_v4[3]+1)*screen_width/2,(point2_v4[1]/point2_v4[3]+1)*screen_height/2)
-                    point3_v4 = ((point3_v4[0]/point3_v4[3]+1)*screen_width/2,(point3_v4[1]/point3_v4[3]+1)*screen_height/2)
-                    point4_v4 = ((point4_v4[0]/point4_v4[3]+1)*screen_width/2,(point4_v4[1]/point4_v4[3]+1)*screen_height/2)
-                    point5_v4 = ((point5_v4[0]/point5_v4[3]+1)*screen_width/2,(point5_v4[1]/point5_v4[3]+1)*screen_height/2)
-                    point6_v4 = ((point6_v4[0]/point6_v4[3]+1)*screen_width/2,(point6_v4[1]/point6_v4[3]+1)*screen_height/2)
-                    point7_v4 = ((point7_v4[0]/point7_v4[3]+1)*screen_width/2,(point7_v4[1]/point7_v4[3]+1)*screen_height/2)
-                    point8_v4 = ((point8_v4[0]/point8_v4[3]+1)*screen_width/2,(point8_v4[1]/point8_v4[3]+1)*screen_height/2)
-                    tcl_code.append(f"{canvas} coords {lenght} {point1_v4[0]} {point1_v4[1]} {point2_v4[0]} {point2_v4[1]} "
-                                    f"{point3_v4[0]} {point3_v4[1]} {point4_v4[0]} {point4_v4[1]}\n"
-                                    f"{canvas} itemconfigure ¤ -fill #{tri[12]:02x}{tri[13]:02x}{tri[14]:002x}\n")
-                    tcl_code.append(f"{canvas} coords {lenght} {point5_v4[0]} {point5_v4[1]} {point6_v4[0]} {point6_v4[1]} "
-                                    f"{point7_v4[0]} {point7_v4[1]} {point8_v4[0]} {point8_v4[1]}\n"
-                                    f"{canvas} itemconfigure {lenght} -fill #{tri[12]:02x}{tri[13]:02x}{tri[14]:002x}\n")
-            # TODO: make this whole section shorter without functions, as they have proven themselves too slo
+                    p1 = ((p1[0]/p1[3]+1)*screen_w/2,(p1[1]/p1[3]+1)*screen_h/2)
+                    p2 = ((p2[0]/p2[3]+1)*screen_w/2,(p2[1]/p2[3]+1)*screen_h/2)
+                    p3 = ((p3[0]/p3[3]+1)*screen_w/2,(p3[1]/p3[3]+1)*screen_h/2)
+                    p4 = ((p4[0]/p4[3]+1)*screen_w/2,(p4[1]/p4[3]+1)*screen_h/2)
+                    p5 = ((p5[0]/p5[3]+1)*screen_w/2,(p5[1]/p5[3]+1)*screen_h/2)
+                    p6 = ((p6[0]/p6[3]+1)*screen_w/2,(p6[1]/p6[3]+1)*screen_h/2)
+                    p7 = ((p7[0]/p7[3]+1)*screen_w/2,(p7[1]/p7[3]+1)*screen_h/2)
+                    p8 = ((p8[0]/p8[3]+1)*screen_w/2,(p8[1]/p8[3]+1)*screen_h/2)
+                    tcl_code.append(f"{canvas} coords {lenght} {p1[0]} {p1[1]} {p2[0]} {p2[1]} "
+                                    f"{p3[0]} {p3[1]} {p4[0]} {p4[1]}\n"
+                                    f"{canvas} itemconfigure ¤ -fill #{quad_data[12]:02x}{quad_data[13]:02x}{quad_data[14]:002x}\n")
+                    tcl_code.append(f"{canvas} coords {lenght} {p5[0]} {p5[1]} {p6[0]} {p6[1]} "
+                                    f"{p7[0]} {p7[1]} {p8[0]} {p8[1]}\n"
+                                    f"{canvas} itemconfigure {lenght} -fill #{quad_data[12]:02x}{quad_data[13]:02x}{quad_data[14]:002x}\n")
+            # TODO: make this whole section shorter without functions, as they have proven themselves too slow
             # endregion append geom
 
             if lenght == 0:
                 if self.msg_del % 100 == 0:
-                    self.log(f"Polygons on screen ({len(tcl_code)}) exceed polygon pool of {POLYGON_COUNT}"
-                             , "YELLOW","COLORBG")
+                    self.log(f"Polygons on screen exceed polygon pool of {POLYGON_COUNT}"
+                             , "YELLOW","ITALIC")
                 self.msg_del += 1
                 break
             lenght-=1

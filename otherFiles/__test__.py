@@ -174,8 +174,8 @@ def test():
             tot+=delta_t
             avrg_time=(delta_t)*(1-lerp_val)+avrg_time*lerp_val
             t = -time.perf_counter()
-            cam().camera_rot=((GameToTK().namespace.mouse_pos_y-last_y)/10,
-                              -(GameToTK().namespace.mouse_pos_x-last_x)/10+tot,0)
+            cam().camera_rot=(Inp.mouse("x")/10,
+                              -Inp.mouse("y")/10,0)
             # y_input = 1 if GameToTK().get_key('w') else 0
             # y_input-= 1 if GameToTK().get_key('s') else 0
             # x_input = 1 if GameToTK().get_key('a') else 0

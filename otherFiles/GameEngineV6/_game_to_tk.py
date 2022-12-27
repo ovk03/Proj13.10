@@ -20,15 +20,17 @@ class GameToTK(metaclass=EngineTypeSingleton):
         self.render_event = multiprocessing.Event()
         self.waiting_event = multiprocessing.Event()
         self.command_event = multiprocessing.Event()
-        self.key_event= multiprocessing.Event()
+        self.key_event = multiprocessing.Event()
 
         self.manager = multiprocessing.Manager()
         self.namespace = self.manager.Namespace()
 
         self.namespace.mouse_pos_x = 0
         self.namespace.mouse_pos_y = 0
-        self.namespace.width = 0
-        self.namespace.height = 0
+        self.namespace.mouse_coords_x = 0
+        self.namespace.mouse_coords_y = 0
+        self.namespace.canv_width = 0
+        self.namespace.canv_height = 0
         self.namespace.offset_width = 0
         self.namespace.offset_height = 0
 
@@ -53,7 +55,7 @@ class GameToTK(metaclass=EngineTypeSingleton):
     def get_data_for_rend(self)->tuple:
         """returns everything needed from TCL to render triangles to TCL code"""
         # FIXME: remove hardcoded canvas name
-        return (self.namespace.width, self.namespace.height, ".!canvas")
+        return (self.namespace.canv_width, self.namespace.canv_height, ".!canvas")
 
     def get_key(self,keycode):
         if self.key_event.is_set():
@@ -62,8 +64,11 @@ class GameToTK(metaclass=EngineTypeSingleton):
         return self._key_list.get(keycode,False)
 
     def get_mouse(self):
-
         return (self.namespace.mouse_pos_y,self.namespace.mouse_pos_x)
+
+    def get_mouse_coords(self):
+
+        return (self.namespace.mouse_coords_y,self.namespace.mouse_coords_x)
 
     def draw_code(self, code: str):
         """ draw next frame """
@@ -80,13 +85,3 @@ class GameToTK(metaclass=EngineTypeSingleton):
         self.waiting_event.clear()
         self.render_event.set()
         return True
-
-        # try:
-        #     if code[0:4] == "None":
-        #         # TODO: figure out why removing this makes the WHOLE thing not work
-        #         # TODO: I cant even replace it with another check
-        #
-        #         # FIXME: never figured out what caused "self.root.winfo_exists()" to magically fix my project
-        #                  getting a random readonly boolean shouldn't have any affect TK screen not appearing
-        #         print(self.root.winfo_exists())
-        # except Exception: pass

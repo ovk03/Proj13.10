@@ -74,7 +74,7 @@ def main1():
             numsize = len(str(maxval))
         # fwrite(magic)
         # fwrite(comment)
-        fwrite(magic+'%i %i %i ' % (self.width, self.height, maxval))
+        fwrite(magic +'%i %i %i ' % (self.canv_width, self.canv_height, maxval))
         import time
         start_time = time.time()
         """for h in range(self.height):
@@ -91,14 +91,14 @@ def main1():
                 #string.__add__('\n')
         #fwrite(string)"""
         if ppmformat == 'P3':
-            for h in range(self.height):
-                for w in range(self.width):
+            for h in range(self.canv_height):
+                for w in range(self.canv_width):
                     r, g, b = self.get(w, h)
                     fwrite('   %*i %*i %*i' % (numsize, r, numsize, g, numsize, b))
                         # string.__add__('   %*i %*i %*i' % (numsize, r, numsize, g, numsize, b))
                 fwrite('\n')
         else:
-            f.write((bytes('%c%c%c' % (111,118,121), 'UTF-8')*self.width*self.height))
+            f.write((bytes('%c%c%c' % (111,118,121), 'UTF-8') * self.canv_width * self.canv_height))
         # fwrite(string)
         print("--- %s seconds ---" % (time.time() - start_time))
 

@@ -15,16 +15,18 @@ created 10.12.2022 14.59
 
 # Dictionary containing the most common 16:9 resolutions, These correspond to specific files in data.
 COMMON_SCREEN_RESOLUTIONS = {640:360,1600:900,1920:1080,2560:1440}
-POLYGON_COUNT = 1000
+POLYGON_COUNT = 2000
 FRAME_RATE_LOG_FREQUENCY = 100
-DEBUG_GAME_ENGINE = True
-EXTRA_DEBUG_GAME_ENGINE = True
-USE_TK_INPUT_ONLY = True
+LINK_DEBUG_LOG = True
+GAME_ENGINE_DEBUG_LOG = True
+SHOULD_LINK_GAME_ENGINE_DEBUG_LOG = True
+USE_TK_INPUT_ONLY = False
 
 class EngineType(type):
     """This is a metaclass used by Everything.
     It differs from a normal class in many useful ways.
-    In this case it is used to implement Global like functionality without actually using Global variables"""
+    In this case it is used to implement Global like
+    functionality without actually using Global variables"""
 
     is_windows = False
     is_working = True
@@ -36,7 +38,7 @@ class EngineType(type):
         # simple function to define if audio and mouse control is available
         obj.is_windows = True if platform.platform().lower().__contains__("windows") else False
         obj.run_count = 0
-        obj.is_debug = DEBUG_GAME_ENGINE
+        obj.is_debug = GAME_ENGINE_DEBUG_LOG
         setattr(obj, mcs.log.__name__, mcs.log)
         setattr(obj, mcs.log_func.__name__, mcs.log_func)
         setattr(obj, "print", mcs.log_func)
@@ -66,16 +68,16 @@ class EngineType(type):
             return result
         return wrapper
 
-    # @ staticmethod # this way no class reference needs to be passed
-    # NVM in need it to be passed
     def log(cls, msg:str, *codes):
         if not cls.is_debug: return
         try:
             # whether to add link to print line at the end of the log
-            should_link = EXTRA_DEBUG_GAME_ENGINE
+            should_link = SHOULD_LINK_GAME_ENGINE_DEBUG_LOG
             if codes.__contains__("LINK"):
                 should_link = True
                 codes = filter(lambda a: a != "LINK", codes)
+            if should_link:
+                print("\33[0m\33[34m\"LINK\"\33[0m ",end="")
 
             # https://en.wikipedia.org/wiki/ANSI_escape_code
             # ANSI escape codes
@@ -96,27 +98,29 @@ class EngineType(type):
             # link or not to link
             if should_link:
                 cf = inspect.currentframe().f_back
-                print(f' File "{inspect.getframeinfo(cf).filename}", line {max(inspect.getframeinfo(cf).lineno, 1)}'.replace("\\", "/"))
+                print(("   "*50)+f'File "{inspect.getframeinfo(cf).filename}", line '
+                      f'{max(inspect.getframeinfo(cf).lineno, 1)}'.replace("\\", "/"))
             else:
                 print()
 
         except TypeError as e:
             print(f"\033[0m\33[91mType can't be converted to string. ({e})\033[0m")
             cf = inspect.currentframe().f_back
-            print(f' File "{inspect.getframeinfo(cf).filename}", line {max(inspect.getframeinfo(cf).lineno, 1)}'.replace("\\", "/"))
+            print(f' File "{inspect.getframeinfo(cf).filename}", line '
+                  f'{max(inspect.getframeinfo(cf).lineno, 1)}'.replace("\\", "/"))
             print()
 
         except Exception as e:
             print(f"\033[0m\33[91mType can't be converted to string. ({e})\033[0m")
             cf = inspect.currentframe().f_back
-            print(f' File "{inspect.getframeinfo(cf).filename}", line {max(inspect.getframeinfo(cf).lineno, 1)}'.replace("\\", "/"))
+            print(f' File "{inspect.getframeinfo(cf).filename}", line '
+                  f'{max(inspect.getframeinfo(cf).lineno, 1)}'.replace("\\", "/"))
             print()
 
-    # @ staticmethod # this way no class reference needs to be passed
-    # NVM in need it to be passed
     def link(cls):
         cf = inspect.currentframe().f_back
-        print(f'File "{inspect.getframeinfo(cf).filename}", line {max(inspect.getframeinfo(cf).lineno, 1)}'.replace("\\", "/"))
+        print(f'File "{inspect.getframeinfo(cf).filename}", line '
+              f'{max(inspect.getframeinfo(cf).lineno, 1)}'.replace("\\", "/"))
 
 
 class EngineTypeSingleton(EngineType):
@@ -157,8 +161,10 @@ class IsWindows:
 
 
 if __name__ == "__main__":
-    # import test without relative path
-    # FIXME: find a way to make this better. Luckily this version of module doesn't depend on this kind of structure, like the last one
+    # TODO: import test without relative path
+    # FIXME: find a way to make this better.
+    #  Luckily this version of module doesn't depend on this kind of structure,
+    #  like the last one
     import sys
     import pathlib
     sys.path.append(str(pathlib.Path().absolute().parent))
@@ -167,4 +173,5 @@ if __name__ == "__main__":
         test()
         test()
     except ModuleNotFoundError:
-        logging.getLogger().error("External test failed to run. Make sure the test file exists and contains function \"test\"")
+        logging.getLogger().error("External test failed to run. Make sure "
+                                  "the test file exists and contains function \"test\"")
