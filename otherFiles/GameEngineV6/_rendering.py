@@ -12,7 +12,7 @@ created 15.12.2022 21.18
 """
 
 
-class CameraRenderOptimized(metaclass=EngineTypeSingleton):
+class Camera(metaclass=EngineTypeSingleton):
     
     buffer=None
 
@@ -35,10 +35,11 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
         self.log("Have you implemented area culling yet? (pref quad/oct tree)","CYAN")
         # remove this after it has been implemented
 
-    def render(self, buffer=None, *_):
-        was_rendered=False
-        tcl_code=[]
-        was_rendered = self.render3d(buffer,True)
+    @ staticmethod
+    def render(buffer=None, *_):
+        was_rendered = False
+        tcl_code = []
+        was_rendered = Camera().render3d(buffer,True)
         return was_rendered
 
     def render3d(self, buffer=None, cache: bool = False) -> bool:
@@ -127,17 +128,8 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
             -sy * ca, cy * ca, -sa,
             -cy * sb - sy * sa * cb, cy * sa * cb - sy * sb, ca * cb)
 
-        # proj_m4 = (
-        #     x_fov, 0, 0, 0,
-        #     0, y_fov, 0, 0,
-        #     0, 0, far / (far - near), -near * far / (far - near),
-        #     0, 0, 1, 0)
-
-        cam_fwd_vec = (trans_m3x3[6], trans_m3x3[7], trans_m3x3[8])
-
         tcl_code = []
 
-        # 2. calculations
         count = POLYGON_COUNT-1
 
         # Each calculation inside this loop is run approximately 1e9 times in only 20 seconds
@@ -471,9 +463,11 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
 
         return GameToTK().draw_code("".join(tcl_code))
 
-    def multi_core_rendrer(self, camera_pos, camera_rot, screen_width, screen_height, canvas, buffer, output):
+    def multi_core_rendrer(self, screen_width, screen_height, canvas, buffer, output):
         """same as single thread, but ..."""
 
+
+        # region constants
         x_fov = 9 / 10 / 2
         y_fov = 16 / 10 / 2
         near = .001
@@ -483,15 +477,15 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
         far_far_near = far / (far - near)
         far_near_near_far = near * far / (far - near)
 
-        c_pos_x, c_pos_y, c_pos_z = camera_pos
+        c_pos_x, c_pos_y, c_pos_z = self.camera_pos
 
 
-        sa = math.sin((camera_rot[0]) * math.radians(1))
-        ca = math.cos((camera_rot[0]) * math.radians(1))
-        sb = math.sin(camera_rot[1] * math.radians(1))
-        cb = math.cos(camera_rot[1] * math.radians(1))
-        sy = math.sin(camera_rot[2] * math.radians(1))
-        cy = math.cos(camera_rot[2] * math.radians(1))
+        sa = math.sin((self.camera_rot[0]) * math.radians(1))
+        ca = math.cos((self.camera_rot[0]) * math.radians(1))
+        sb = math.sin(self.camera_rot[1] * math.radians(1))
+        cb = math.cos(self.camera_rot[1] * math.radians(1))
+        sy = math.sin(self.camera_rot[2] * math.radians(1))
+        cy = math.cos(self.camera_rot[2] * math.radians(1))
 
         # https://en.wikipedia.org/wiki/Rotation_matrix
         # I had to change multiply order to z last
@@ -500,18 +494,12 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
             -sy * ca, cy * ca, -sa,
             -cy * sb - sy * sa * cb, cy * sa * cb - sy * sb, ca * cb)
 
-        # proj_m4 = (
-        #     x_fov, 0, 0, 0,
-        #     0, y_fov, 0, 0,
-        #     0, 0, far / (far - near), -near * far / (far - near),
-        #     0, 0, 1, 0)
 
-        cam_fwd_vec = (trans_m3x3[6], trans_m3x3[7], trans_m3x3[8])
+        count = POLYGON_COUNT-1
+
+        # endregion constants
 
         tcl_code = []
-
-        # 2. calculations
-        count = POLYGON_COUNT-1
 
         # Each calculation inside this loop is run approximately 1e9 times in only 20 seconds
         # For that reason I have to use all possible optimizations, even though it wont result in readable code
@@ -519,13 +507,14 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
             """This has explanation in USER MANUAL. This section doesn't contain comments as they 
             wouldn't be sufficient in explaining this and that would increase the rowcount further"""
 
-            # TODO: backface culling
+
+            # region process vertices
+
             if (tri[0]-c_pos_x)*tri[15]+ \
                (tri[1]-c_pos_y)*tri[16]+ \
                (tri[2]-c_pos_z)*tri[17] >= 0:
                 continue
 
-            # region confusing math Keep collapsed
             point1_v4 = (
                 trans_m3x3[0] * (tri[0]-c_pos_x)+
                 trans_m3x3[3] * (tri[1]-c_pos_y)+
@@ -615,8 +604,9 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
                (point3_v4[1] < -point3_v4[3]) and \
                (point4_v4[1] < -point4_v4[3]):
                 continue
+            # endregion process vertices
 
-            # region append geometry
+            # region append geometry to code
 
             if (0.0 < point1_v4[2]) and \
                (0.0 < point2_v4[2]) and \
@@ -842,8 +832,5 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
             # TODO: make this whole section shorter without functions, as they have proven themselves too slo
             # endregion append geom
 
-            #endregion
-
-        #endregion
-
+        """Finally return tcl code"""
         return tcl_code

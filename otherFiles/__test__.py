@@ -147,7 +147,7 @@ def grid_test_10k():
             for z in range(-5,6):
                 if x == 0 or y == 0 or z == 0:
                     pass
-                l.extend(box_w_quads_optim((x,y,z)))
+                l.extend(box_w_quads_optim((x, y, z)))
     for i in l:
         if type(i) is not tuple:
             raise TypeError
@@ -156,44 +156,40 @@ def grid_test_10k():
 
 def test():
     try:
-        cam=lambda: CameraRenderOptimized()
-        i=0
+        # world doesn't change, so we only pass data over once
+        Camera.render(obj_parse(pathlib.Path(__file__).absolute().parent.joinpath("untitled.obj")))
 
-        print("count of polygons:")
-        print(len(grid_test_10k()))
-        cam().camera_rot=(0,90,0)
-        cam().render(obj_parse(pathlib.Path(__file__).absolute().parent.joinpath("untitled.obj")))
-        # cam().render([(0,0,0,10,0,10,10,0,-10,-10,0,-10,-10,0,10),(0,0,0,10,0,10,10,0,-10,-10,0,-10,-10,0,10)])
-        avrg_time=0.02
-        t = -time.perf_counter()
-        lerp_val=0.99
-        last_y=GameToTK().namespace.mouse_pos_y
-        last_x=GameToTK().namespace.mouse_pos_x
-        cam().camera_pos=(0,2.5,-5)
-        while cam().render():
-            i += (t+time.perf_counter())*20
+        while Camera.render():
+
+            # time
             delta_t=t+time.perf_counter()
-            avrg_time=(delta_t)*(1-lerp_val)+avrg_time*lerp_val
             t = -time.perf_counter()
-            cam().camera_rot=((GameToTK().namespace.mouse_pos_y-last_y)/10,
-                              -(GameToTK().namespace.mouse_pos_x-last_x)/10,0)
-            y_input = 1 if GameToTK().get_key('w') else 0
-            y_input-= 1 if GameToTK().get_key('s') else 0
-            x_input = 1 if GameToTK().get_key('a') else 0
-            x_input-= 1 if GameToTK().get_key('d') else 0
-            z_input = 1 if GameToTK().get_key('q') else 0
-            z_input-= 1 if GameToTK().get_key('e') else 0
+
+            # input
+            y_input = 1 if GameToTK().get_key('w')*delta_t else 0
+            y_input-= 1 if GameToTK().get_key('s')*delta_t else 0
+            x_input = 1 if GameToTK().get_key('a')*delta_t else 0
+            x_input-= 1 if GameToTK().get_key('d')*delta_t else 0
+            z_input = 1 if GameToTK().get_key('q')*delta_t else 0
+            z_input-= 1 if GameToTK().get_key('e')*delta_t else 0
+
+            x_rot = GameToTK().namespace.mouse_pos_y/20
+            y_rot = GameToTK().namespace.mouse_pos_y/20
+
             if(GameToTK().get_key("Shift_L")):
                 x_input*=15
                 y_input*=15
                 z_input*=15
-            cam().camera_pos=v3_plus(cam().camera_pos,
-                             structures.reversed_rotation_matrix(cam().camera_rot,
-                             (x_input*delta_t,z_input*delta_t,y_input*delta_t)))
+                x_rot*=5
+                y_rot*=5
 
-            # inter.camera_pos=(0,0,-15)
-            # print(inter.camera_rot)
-            # print(f"frame rate: {1 / (avrg_time + 1e-20)}")
+            new_pos=structures.reversed_rotation_matrix(
+                Camera.camera_rot,
+                (x_input,z_input,y_input))
+
+            Camera.camera_rot=(x_rot,y_rot,0)
+            Camera.camera_pos=v3_plus(Camera.camera_pos,new_pos)
+
     except Exception as e:
         logging.getLogger().exception(e)
     cProfile.run("unittest.main()","unittest")
