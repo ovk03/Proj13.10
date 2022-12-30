@@ -147,7 +147,7 @@ def grid_test_10k():
             for z in range(-5,6):
                 if x == 0 or y == 0 or z == 0:
                     pass
-                l.extend(box_w_quads_optim((x,y,z)))
+                l.extend(box_w_quads_optim((x, y, z)))
     for i in l:
         if type(i) is not tuple:
             raise TypeError
@@ -155,6 +155,7 @@ def grid_test_10k():
 
 def test():
     try:
+<<<<<<< HEAD
         cam=lambda: CameraRenderOptimized()
         i=0
 
@@ -188,16 +189,42 @@ def test():
             z_input = 1 if Inp().key('q') else 0
             z_input-= 1 if Inp().key('e') else 0
             if(Inp().key("Shift_L")):
+=======
+        # world doesn't change, so we only pass data over once
+        Camera.render(obj_parse(pathlib.Path(__file__).absolute().parent.joinpath("untitled.obj")))
+
+        while Camera.render():
+
+            # time
+            delta_t=t+time.perf_counter()
+            t = -time.perf_counter()
+
+            # input
+            y_input = 1 if GameToTK().get_key('w')*delta_t else 0
+            y_input-= 1 if GameToTK().get_key('s')*delta_t else 0
+            x_input = 1 if GameToTK().get_key('a')*delta_t else 0
+            x_input-= 1 if GameToTK().get_key('d')*delta_t else 0
+            z_input = 1 if GameToTK().get_key('q')*delta_t else 0
+            z_input-= 1 if GameToTK().get_key('e')*delta_t else 0
+
+            x_rot = GameToTK().namespace.mouse_pos_y/20
+            y_rot = GameToTK().namespace.mouse_pos_y/20
+
+            if(GameToTK().get_key("Shift_L")):
+>>>>>>> f0ee319 (Small things.)
                 x_input*=15
                 y_input*=15
                 z_input*=15
-            cam().camera_pos=v3_plus(cam().camera_pos,
-                             structures.reversed_rotation_matrix(cam().camera_rot,
-                             (x_input*delta_t,z_input*delta_t,y_input*delta_t)))
+                x_rot*=5
+                y_rot*=5
 
-            # inter.camera_pos=(0,0,-15)
-            # print(inter.camera_rot)
-            # print(f"frame rate: {1 / (avrg_time + 1e-20)}")
+            new_pos=structures.reversed_rotation_matrix(
+                Camera.camera_rot,
+                (x_input,z_input,y_input))
+
+            Camera.camera_rot=(x_rot,y_rot,0)
+            Camera.camera_pos=v3_plus(Camera.camera_pos,new_pos)
+
     except Exception as e:
         logging.getLogger().exception(e)
     cProfile.run("unittest.main()","unittest")
