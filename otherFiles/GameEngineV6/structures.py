@@ -183,13 +183,13 @@ EYE_MATRIX=(1,0,0,0,
             0,0,0,1)
 
 @functools.lru_cache
-def v3_minus(a,b):
+def vec_minus(a,b):
     return (a[0]-b[0],a[1]-b[1],a[2]-b[2])
-def v3_plus(a,b):
+def vec_plus(a, b):
     return (a[0]+b[0],a[1]+b[1],a[2]+b[2])
 
 @functools.lru_cache
-def rotation_matrix(rot,pos):
+def vec_rotate(rot, pos):
     sa = math.sin(rot[0] * math.radians(1))
     ca = math.cos(rot[0] * math.radians(1))
     sb = math.sin(rot[1] * math.radians(1))
@@ -215,7 +215,7 @@ def rotation_matrix(rot,pos):
             trans_m3x3[8] * pos[2])
 
 @functools.lru_cache
-def reversed_rotation_matrix(rot,pos):
+def vec_rotate_inverse(rot, pos):
     sa = math.sin(rot[0] * math.radians(1))
     ca = math.cos(rot[0] * math.radians(1))
     sb = math.sin(rot[1] * math.radians(1))

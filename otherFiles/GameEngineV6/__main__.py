@@ -12,15 +12,22 @@ import inspect
 created 10.12.2022 14.59
 """
 
+"""============Global Vars=================="""
 
-# Dictionary containing the most common 16:9 resolutions, These correspond to specific files in data.
-COMMON_SCREEN_RESOLUTIONS = {640:360,1600:900,1920:1080,2560:1440}
+# Configurations for module
 POLYGON_COUNT = 2000
 FRAME_RATE_LOG_FREQUENCY = 100
 LINK_DEBUG_LOG = True
 GAME_ENGINE_DEBUG_LOG = True
 SHOULD_LINK_GAME_ENGINE_DEBUG_LOG = True
 USE_TK_INPUT_ONLY = False
+
+# Dictionary containing the most common 16:9 resolutions, These correspond to specific files in data.
+COMMON_SCREEN_RESOLUTIONS = {640:360,1600:900,1920:1080,2560:1440}
+
+
+"""===============metaclass======================"""
+
 
 class EngineType(type):
     """This is a metaclass used by Everything.
@@ -123,6 +130,9 @@ class EngineType(type):
               f'{max(inspect.getframeinfo(cf).lineno, 1)}'.replace("\\", "/"))
 
 
+"""===============Singleton======================="""
+
+
 class EngineTypeSingleton(EngineType):
     """This is a metaclass used by Everything.
     It differs from a normal class in many useful ways.
@@ -150,6 +160,8 @@ class EngineTypeSingleton(EngineType):
         return cls.singletons[cls]
 
 
+"""==============IsWindows========================="""
+
 # simple function to define if audio and mouse control is available
 class IsWindows:
     def __getattr__(self):
@@ -159,6 +171,8 @@ class IsWindows:
     def __setattr__(self, key, value):
         logging.getLogger().error("Tried to modify readonly class attribute")
 
+
+"""==============Module Test==========================="""
 
 if __name__ == "__main__":
     # TODO: import test without relative path

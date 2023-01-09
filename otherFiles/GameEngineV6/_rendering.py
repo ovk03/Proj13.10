@@ -1,4 +1,4 @@
-"""Optimized to the maximum. """
+"""Rendering optimized to the maximum with cost of readability"""
 
 import threading
 from ._game_to_tk import *
@@ -12,36 +12,70 @@ created 15.12.2022 21.18
 """
 
 
-class CameraRenderOptimized(metaclass=EngineTypeSingleton):
+class Camera(metaclass=EngineTypeSingleton):
+    """Main rendering component provided by the module"""
+
+    """=============Extrernal funcs==============="""
+    # region Ext
+
+    @ staticmethod
+    def set_pos(new_pos):
+        Camera().camera_pos=new_pos
+
+    @ staticmethod
+    def get_pos():
+       return Camera().camera_pos
+
+    @ staticmethod
+    def incr_pos(incr_pos):
+        Camera().camera_pos=vec_plus(Camera().camera_pos, incr_pos)
+
+    @ staticmethod
+    def set_rot(new_rot):
+        Camera().camera_rot=new_rot
+
+    @ staticmethod
+    def get_rot():
+       return Camera().camera_rot
+
+    @ staticmethod
+    def incr_rot(incr_rot):
+        Camera().camera_rot=vec_plus(Camera().camera_rot, incr_rot)
     
-    buffer=None
-
-    camera_pos = ()
-    camera_rot = ()
-    sinx = 0.0
-    cosx = 0.0
-    siny = 0.0
-    cosy = 0.0
-    sinz = 0.0
-    cosz = 0.0
-
-    tri_colors = ["000000" for _ in range(POLYGON_COUNT)]
-    def __init__(self, pos=(0,)*3, rot=(0,)*3):
-        self.camera_pos = pos
-        self.camera_rot = rot
-        self.msg_del=0
-        # self.is_debug = False
-        # TODO: this
-        self.log("Have you implemented area culling yet? (pref quad/oct tree)","CYAN")
-        # remove this after it has been implemented
-
-    def render(self, buffer=None, *_):
+    @ staticmethod
+    def render(buffer=None, *_):
         was_rendered=False
         tcl_code=[]
-        was_rendered = self.render3d(buffer,True)
+        was_rendered = Camera()._render3d(buffer,True)
         return was_rendered
+    # endregion Ext
 
-    def render3d(self, buffer=None, cache: bool = False) -> bool:
+    """=============Internal funcs============="""
+    # region Intr
+
+    def __init__(self, pos=(0,) * 3, rot=(0,) * 3):
+
+        self.buffer = None
+        self.tri_colors = ["000000" for _ in range(POLYGON_COUNT)]
+
+        self.camera_pos = ()
+        self.camera_rot = ()
+        self.sinx = 0.0
+        self.cosx = 0.0
+        self.siny = 0.0
+        self.cosy = 0.0
+        self.sinz = 0.0
+        self.cosz = 0.0
+
+        self.camera_pos = pos
+        self.camera_rot = rot
+        self.msg_del = 0
+        # self.is_debug = False
+        # TODO: this
+        self.log("Have you implemented area culling yet? (pref quad/oct tree)", "CYAN")
+        # remove this after it has been implemented
+
+    def _render3d(self, buffer=None, cache: bool = False) -> bool:
         """really complicated and unreadable code, but REALLY OPTIMIZED for rendering objects with tkinter
         Input is tuple of form:
         ((1,1,1),(1,1,1),(1,2,3))
@@ -69,7 +103,7 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
 
         c_pos_x,c_pos_y,c_pos_z = self.camera_pos
         
-        screen_w, screen_h, canvas = GameToTK().get_data_for_rend()
+        screen_w, screen_h, *_= GameToTK.get_screen_data()
 
         sa = math.sin((self.camera_rot[0]) * math.radians(1))
         ca = math.cos((self.camera_rot[0]) * math.radians(1))
@@ -233,9 +267,9 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
                 p2 = ((p2[0]/p2[3]+1)*screen_w/2, (p2[1]/p2[3]+1)*screen_h/2)
                 p3 = ((p3[0]/p3[3]+1)*screen_w/2, (p3[1]/p3[3]+1)*screen_h/2)
                 p4 = ((p4[0]/p4[3]+1)*screen_w/2, (p4[1]/p4[3]+1)*screen_h/2)
-                tcl_code.append(f"{canvas} coords {lenght} {p1[0]} {p1[1]} {p2[0]} {p2[1]} "
+                tcl_code.append(f"\".!canvas\" coords {lenght} {p1[0]} {p1[1]} {p2[0]} {p2[1]} "
                                 f"{p3[0]} {p3[1]} {p4[0]} {p4[1]}\n"
-                                f"{canvas} itemconfigure {lenght} -fill #{quad_data[12]:02x}{quad_data[13]:02x}{quad_data[14]:002x}\n")
+                                f"\".!canvas\" itemconfigure {lenght} -fill #{quad_data[12]:02x}{quad_data[13]:02x}{quad_data[14]:002x}\n")
 
             else: # OH NO. THIS IS GONNA GET MESSY
                 c1 = (0.0 >= p1[2])
@@ -352,9 +386,9 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
                     p2 = ((p2[0]/p2[3]+1)*screen_w/2,(p2[1]/p2[3]+1)*screen_h/2)
                     p3 = ((p3[0]/p3[3]+1)*screen_w/2,(p3[1]/p3[3]+1)*screen_h/2)
                     p4 = ((p4[0]/p4[3]+1)*screen_w/2,(p4[1]/p4[3]+1)*screen_h/2)
-                    tcl_code.append(f"{canvas} coords {lenght} {p1[0]} {p1[1]} {p2[0]} {p2[1]} "
+                    tcl_code.append(f"\".!canvas\" coords {lenght} {p1[0]} {p1[1]} {p2[0]} {p2[1]} "
                                     f"{p3[0]} {p3[1]} {p4[0]} {p4[1]}\n"
-                                    f"{canvas} itemconfigure {lenght} -fill #{quad_data[12]:02x}{quad_data[13]:02x}{quad_data[14]:002x}\n")
+                                    f"\".!canvas\" itemconfigure {lenght} -fill #{quad_data[12]:02x}{quad_data[13]:02x}{quad_data[14]:002x}\n")
 
                 elif clip_count == 1: # In this case we need more polygons to represent this polygon
                     if c1:   #c1 self.log("Z clip #1","COLORBG")
@@ -430,12 +464,12 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
                     p6 = ((p6[0]/p6[3]+1)*screen_w/2,(p6[1]/p6[3]+1)*screen_h/2)
                     p7 = ((p7[0]/p7[3]+1)*screen_w/2,(p7[1]/p7[3]+1)*screen_h/2)
                     p8 = ((p8[0]/p8[3]+1)*screen_w/2,(p8[1]/p8[3]+1)*screen_h/2)
-                    tcl_code.append(f"{canvas} coords {lenght} {p1[0]} {p1[1]} {p2[0]} {p2[1]} "
+                    tcl_code.append(f"\".!canvas\" coords {lenght} {p1[0]} {p1[1]} {p2[0]} {p2[1]} "
                                     f"{p3[0]} {p3[1]} {p4[0]} {p4[1]}\n"
-                                    f"{canvas} itemconfigure ¤ -fill #{quad_data[12]:02x}{quad_data[13]:02x}{quad_data[14]:002x}\n")
-                    tcl_code.append(f"{canvas} coords {lenght} {p5[0]} {p5[1]} {p6[0]} {p6[1]} "
+                                    f"\".!canvas\" itemconfigure ¤ -fill #{quad_data[12]:02x}{quad_data[13]:02x}{quad_data[14]:002x}\n")
+                    tcl_code.append(f"\".!canvas\" coords {lenght} {p5[0]} {p5[1]} {p6[0]} {p6[1]} "
                                     f"{p7[0]} {p7[1]} {p8[0]} {p8[1]}\n"
-                                    f"{canvas} itemconfigure {lenght} -fill #{quad_data[12]:02x}{quad_data[13]:02x}{quad_data[14]:002x}\n")
+                                    f"\".!canvas\" itemconfigure {lenght} -fill #{quad_data[12]:02x}{quad_data[13]:02x}{quad_data[14]:002x}\n")
             # TODO: make this whole section shorter without functions, as they have proven themselves too slow
             # endregion append geom
 
@@ -452,6 +486,7 @@ class CameraRenderOptimized(metaclass=EngineTypeSingleton):
         #endregion
 
         for i in range(0, POLYGON_COUNT-len(tcl_code)):
-            tcl_code.append(f"{canvas} coords {i} 0 0 0 0 0 0 0 0\n")
+            tcl_code.append(f"\".!canvas\" coords {i} 0 0 0 0 0 0 0 0\n")
 
         return GameToTK().draw_code("".join(tcl_code))
+    # endregion Intr

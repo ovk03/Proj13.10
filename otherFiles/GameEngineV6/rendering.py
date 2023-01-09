@@ -344,7 +344,7 @@ class CameraRender:
         near = 1
         far = 1000
 
-        screen_width, screen_height, canvas, *polygons = self.inter.get_data_for_rend()
+        screen_width, screen_height, canvas, *polygons = self.inter.get_screen_data()
 
         trans_m3x4 = (self.cosx * self.cosy, self.cosx * self.siny * self.sinz - self.sinx * self.cosz,
                         self.cosx * self.siny * self.cosz + self.sinx * self.sinz, - self.camera_pos[0],

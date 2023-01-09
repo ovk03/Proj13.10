@@ -155,75 +155,45 @@ def grid_test_10k():
 
 def test():
     try:
-<<<<<<< HEAD
-        cam=lambda: CameraRenderOptimized()
-        i=0
-
-        cam().camera_rot=(0,90,0)
-        cam().render(obj_parse(pathlib.Path(__file__).absolute().parent.joinpath("untitled.obj")))
-        # cam().render([(0,0,0,10,0,10,10,0,-10,-10,0,-10,-10,0,10),(0,0,0,10,0,10,10,0,-10,-10,0,-10,-10,0,10)])
-        avrg_time=0.02
-        t = -time.perf_counter()
-        lerp_val=0.99
-        last_y=GameToTK().namespace.mouse_pos_y
-        last_x=GameToTK().namespace.mouse_pos_x
-        cam().camera_pos=(0,2.5,-5)
-        tot=0
-        while cam().render():
-            i += (t+time.perf_counter())*20
-            delta_t=t+time.perf_counter()
-            tot+=delta_t
-            avrg_time=(delta_t)*(1-lerp_val)+avrg_time*lerp_val
-            t = -time.perf_counter()
-            cam().camera_rot=(Inp.mouse("x")/10,
-                              -Inp.mouse("y")/10,0)
-            # y_input = 1 if GameToTK().get_key('w') else 0
-            # y_input-= 1 if GameToTK().get_key('s') else 0
-            # x_input = 1 if GameToTK().get_key('a') else 0
-            # x_input-= 1 if GameToTK().get_key('d') else 0
-            # z_input = 1 if GameToTK().get_key('q') else 0
-            y_input = 1 if Inp().key('w') else 0
-            y_input-= 1 if Inp().key('s') else 0
-            x_input = 1 if Inp().key('a') else 0
-            x_input-= 1 if Inp().key('d') else 0
-            z_input = 1 if Inp().key('q') else 0
-            z_input-= 1 if Inp().key('e') else 0
-            if(Inp().key("Shift_L")):
-=======
+        t=-time.perf_counter()
         # world doesn't change, so we only pass data over once
         Camera.render(obj_parse(pathlib.Path(__file__).absolute().parent.joinpath("untitled.obj")))
-
+        x_rot=0
+        y_rot=0
         while Camera.render():
 
             # time
             delta_t=t+time.perf_counter()
             t = -time.perf_counter()
 
+
+            if(Input.key_dwn("Escape")):
+                Input.mouse_lock_switch()
+            Input.update()
+
             # input
-            y_input = 1 if GameToTK().get_key('w')*delta_t else 0
-            y_input-= 1 if GameToTK().get_key('s')*delta_t else 0
-            x_input = 1 if GameToTK().get_key('a')*delta_t else 0
-            x_input-= 1 if GameToTK().get_key('d')*delta_t else 0
-            z_input = 1 if GameToTK().get_key('q')*delta_t else 0
-            z_input-= 1 if GameToTK().get_key('e')*delta_t else 0
-
-            x_rot = GameToTK().namespace.mouse_pos_y/20
-            y_rot = GameToTK().namespace.mouse_pos_y/20
-
-            if(GameToTK().get_key("Shift_L")):
->>>>>>> f0ee319 (Small things.)
+            y_input = 1 if Input().key('w') else 0
+            y_input-= 1 if Input().key('s') else 0
+            x_input = 1 if Input().key('a') else 0
+            x_input-= 1 if Input().key('d') else 0
+            z_input = 1 if Input().key('q') else 0
+            z_input-= 1 if Input().key('e') else 0
+            if(Input().key("Shift_L")):
                 x_input*=15
                 y_input*=15
                 z_input*=15
-                x_rot*=5
-                y_rot*=5
+                x_rot -= Input.mouse("x") / 3
+                y_rot += Input.mouse("y") / 3
+            else:
+                x_rot -= Input.mouse("x") / 10
+                y_rot += Input.mouse("y") / 10
 
-            new_pos=structures.reversed_rotation_matrix(
-                Camera.camera_rot,
+            new_pos=structures.vec_rotate_inverse(
+                Camera.get_rot(),
                 (x_input,z_input,y_input))
 
-            Camera.camera_rot=(x_rot,y_rot,0)
-            Camera.camera_pos=v3_plus(Camera.camera_pos,new_pos)
+            Camera.set_rot((y_rot,x_rot,0))
+            Camera.incr_pos(new_pos)
 
     except Exception as e:
         logging.getLogger().exception(e)
